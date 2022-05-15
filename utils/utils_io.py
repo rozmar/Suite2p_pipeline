@@ -207,9 +207,6 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
             basenames = basenames[needed]
             fnames = fnames[needed]
             file_indices = file_indices[needed]
-    if len(stacknames) == 0: # there is no stack, look for previous sessions.. *SIGH..
-        
-        pass #TODO look for previous sessions for z-stacks
         
     uniquebasenames = np.unique(basenames)
     start_times = list()
@@ -254,13 +251,10 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
 #             np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
 #             
 # =============================================================================
+    print('starting to copy {} files'.format(len(fnames)))
     for fname in fnames:
         if fname not in file_dict['copied_files']:#dirs_in_target_dir: 
-            try:
-                metadata = extract_scanimage_metadata(os.path.join(files_dict['dir'],fname))
-            except:
-                print('could not read metadata for {} - probably still in the making'.format(fname))
-                break
+            #metadata = extract_scanimage_metadata(os.path.join(files_dict['dir'],fname))
             target_dir = os.path.join(target_movie_directory,fname[:-4])
             Path(target_dir).mkdir(parents = True,exist_ok = True)
             sourcefile = os.path.join(source_movie_directory,fname)
