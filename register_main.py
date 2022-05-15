@@ -12,6 +12,8 @@ import shutil
 from utils import utils_io
 import sys
 
+
+print(os.path.dirname(__file__))
 local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
 metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
 raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
