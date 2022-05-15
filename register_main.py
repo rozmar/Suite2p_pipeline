@@ -114,8 +114,8 @@ for FOV in FOV_list:
         cluster_command_list = ['cd {}'.format(repo_location),
                                 
                                 'python cluster_helper.py {} "\'{}\'" {}'.format('utils_io.copy_tiff_files_in_order',source_movie_directory,temp_movie_directory)]
-        bash_command = r" && ".join(cluster_command_list)#+ r" &"
-        print('copying files over - and waiting for it')
+        bash_command = r" && ".join(cluster_command_list)+ r" &"
+        print('copying files over - and not waiting for it')
         os.system(bash_command)
         
         #% select the first Z-stack in the FOV directory
