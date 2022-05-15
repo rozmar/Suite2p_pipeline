@@ -183,6 +183,8 @@ def copy_tiff_files_in_loop(source_movie_directory,target_movie_directory):
         
 
 def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
+    source_movie_directory = source_movie_directory.strip("'").strip('"')
+    target_movie_directory = target_movie_directory.strip("'").strip('"')
     Path(target_movie_directory).mkdir(parents = True,exist_ok = True)
     dirs_in_target_dir = os.listdir(target_movie_directory)
 
