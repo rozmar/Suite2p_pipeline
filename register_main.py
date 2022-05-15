@@ -3,28 +3,37 @@
 #%% import libraries and set parameters
 import pandas as pd
 import numpy as np
+import threading
 from pathlib import Path
 import os
 import shutil
-from utils import utils_imaging
+from utils import utils_imaging, utils_io
 import sys
 
-local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
-metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
-raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
-suite2p_dir_base = sys.argv[4]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
-try:
-    subject = sys.argv[5]#'BCI_29'
-except:
-    subject = None
-try:
-    setup = sys.argv[6]#'Bergamo-2P-Photostim'
-except:
-    setup = None
+# =============================================================================
+# local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
+# metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
+# raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
+# suite2p_dir_base = sys.argv[4]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
+# try:
+#     subject = sys.argv[5]#'BCI_29'
+# except:
+#     subject = None
+# try:
+#     setup = sys.argv[6]#'Bergamo-2P-Photostim'
+# except:
+#     setup = None
+# =============================================================================
+
+local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
+metadata_dir = '/mnt/Data/BCI_metadata/'
+raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
+suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
+subject = 'BCI_29'
+setup = 'Bergamo-2P-Photostim'
 
 #% metadata will be updated manually, this script will read .csv files
 subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
-#%% export Z-stacks
 #decode session dates here
 import datetime
 sessions = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject))
@@ -54,24 +63,27 @@ for FOV in FOV_list_:
         FOV_list.append(FOV)
 
 for FOV in FOV_list:
-    z_stacks = subject_metadata.loc[subject_metadata['FOV']==FOV,'Z-stack']
-    sessions = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
-    for z_stack,session in zip(z_stacks,sessions):
-        session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
-        if type(z_stack) is not str:
+    session_dates = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
+    training_types = subject_metadata.loc[subject_metadata['FOV']==FOV,'Training type']
+    for session_date,training_type in zip(session_dates,training_types):
+        if "bci" not in training_type.lower():
+            print('no BCI training according to metadata in session {}'.format(session_date))
             continue
-        z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
-        Path(z_stack_dir).mkdir(exist_ok = True, parents = True)
-        z_stack_save_name = '{}_{}'.format(session,z_stack)
-        if z_stack_save_name in os.listdir(z_stack_dir): 
-            continue #already done
-        tiff_files_in_raw_folder = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session]))
-        if z_stack in tiff_files_in_raw_folder:
-            temp_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(subject,session_date_dict[session],z_stack[:-4]))
-            Path(temp_dir).mkdir(exist_ok = True, parents = True)
-            utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session],z_stack)
-                                          ,temp_dir)
-            shutil.copyfile(os.path.join(temp_dir,z_stack),os.path.join(z_stack_dir,z_stack_save_name))
+        session_date = datetime.datetime.strptime(session_date,'%Y/%m/%d').date()
+        if session_date not in session_date_dict.keys():
+            print('session not found in raw scanimage folder: {}'.format(session_date))
+            continue
+        session = session_date_dict[session_date]
+        # start copying files to local drive
+        source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
+        temp_movie_directory = os.path.join(local_temp_dir,'{}_{}'.format(subject,session))
+        copy_thread = threading.Thread(target = utils_io.copy_tiff_files_in_order, args = (source_movie_directory,temp_movie_directory))
+        copy_thread.start()
+        #utils_io.copy_tiff_files_in_order(source_movie_directory,temp_movie_directory) # this script copies all the data locally
+        asd
+        
+        
+        
         
 #%% go through raw sessions in the bucket and see if they are already registered, if not, start registering on the local hdd
 
