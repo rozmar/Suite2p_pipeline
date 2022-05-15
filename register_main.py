@@ -96,6 +96,13 @@ for FOV in FOV_list:
             print('session not found in raw scanimage folder: {}'.format(session_date))
             continue
         session = session_date_dict[session_date]
+        archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
+        if os.path.exists(archive_movie_directory):
+            if len(os.listdir(archive_movie_directory))>1:
+                print('{} already registered and saved, skipping')
+                first_session_of_FOV = False
+                reference_session_name = session
+                continue
         # start copying files to local drive
         source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
         temp_movie_directory = os.path.join(local_temp_dir,'{}_{}'.format(subject,session))
@@ -107,9 +114,10 @@ for FOV in FOV_list:
         cluster_command_list = ['cd {}'.format(repo_location),
                                 
                                 'python cluster_helper.py {} "\'{}\'" {}'.format('utils_io.copy_tiff_files_in_order',source_movie_directory,temp_movie_directory)]
-        bash_command = r" && ".join(cluster_command_list)+ r" &"
+        bash_command = r" && ".join(cluster_command_list)#+ r" &"
+        print('copying files over - and waiting for it')
         os.system(bash_command)
-        print('copying files over')
+        
         #% select the first Z-stack in the FOV directory
         available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
         for zstackname in available_z_stacks:
@@ -156,7 +164,31 @@ for FOV in FOV_list:
             os.system(bash_command)
             print(bash_command)
             print('generating reference frame')
+            reference_session_name = session
             first_session_of_FOV = False
+        else: #copy reference frame over from previous session
+            
+            reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,reference_session_name)
+        
+            with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
+                filelist_dict_ = json.load(f)
+            ops = np.load(os.path.join(reference_movie_directory,'ops.npy'),allow_pickle=True).tolist()
+            z_plane_indices = np.argmax(ops['zcorr_list'],1)
+            needed_trials = z_plane_indices == np.median(z_plane_indices) #
+            meanimage_all = np.load(os.path.join(reference_movie_directory,'meanImg.npy'))
+            mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
+            meanimage_dict = {'refImg':mean_img,
+                              'movies_used':np.asarray(filelist_dict_['file_name_list'])[needed_trials],
+                              'reference_session':reference_session_name}
+            np.save(os.path.join(temp_movie_directory,'mean_image.npy'),meanimage_dict) 
+            del meanimage_all, mean_img
+            
+            s2p_params['reference_session'] =reference_session_name
+            sp2_params_file = os.path.join(temp_movie_directory,'s2p_params.json')
+            #%
+            with open(sp2_params_file, "w") as data_file:
+                json.dump(s2p_params, data_file, indent=2)
+                
 
         #%% registering
         copy_finished = False
@@ -213,7 +245,7 @@ for FOV in FOV_list:
         os.chmod(concatenated_movie_dir, 0o777 )
         utils_io.concatenate_suite2p_files(temp_movie_directory)
         # archiving
-        archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
+        
         Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
         command_list = ['cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
                         'cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
