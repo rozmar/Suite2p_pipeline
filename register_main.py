@@ -126,9 +126,9 @@ for FOV in FOV_list:
                 file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
             except:
                 file_dict = {'copied_files':[]}
-            while len(file_dict['copied_files'])<trial_num_to_use:
+            while len(file_dict['copied_files'])<trial_num_to_use+1:
                 
-                print('waiting for {} trials to be available for generating reference frame')
+                print('waiting for {} trials to be available for generating reference frame -- already got {}'.format(trial_num_to_use,file_dict['copied_files']))
                 time.sleep(3)
                 try:
                     file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
@@ -138,6 +138,7 @@ for FOV in FOV_list:
                                     'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
             bash_command = r" && ".join(cluster_command_list)+ r" &"
             os.system(bash_command)
+            print('generating reference frame')
             first_session_of_FOV = False
 
         #%% registering
