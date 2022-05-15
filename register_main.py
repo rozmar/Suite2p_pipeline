@@ -122,12 +122,18 @@ for FOV in FOV_list:
                 json.dump(refimage_dict, data_file, indent=2)
             trial_num_to_use = int(trial_number_for_mean_image)
             #%
-            file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+            try:
+                file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+            except:
+                file_dict = {'copied_files':[]}
             while len(file_dict['copied_files'])<trial_num_to_use:
                 
                 print('waiting for {} trials to be available for generating reference frame')
                 time.sleep(3)
-                file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+                try:
+                    file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+                except:
+                    file_dict = {'copied_files':[]}
             cluster_command_list = ['cd /home/rozmar/Scripts/BCI_pipeline',
                                     'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
             bash_command = r" && ".join(cluster_command_list)+ r" &"
