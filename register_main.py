@@ -98,8 +98,17 @@ for FOV in FOV_list:
         # start copying files to local drive
         source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
         temp_movie_directory = os.path.join(local_temp_dir,'{}_{}'.format(subject,session))
-        copy_thread = threading.Thread(target = utils_io.copy_tiff_files_in_order, args = (source_movie_directory,temp_movie_directory))
-        copy_thread.start()
+# =============================================================================
+#         copy_thread = threading.Thread(target = utils_io.copy_tiff_files_in_order, args = (source_movie_directory,temp_movie_directory))
+#         copy_thread.start()
+# =============================================================================
+
+        cluster_command_list = ['cd {}'.format(repo_location),
+                                
+                                'python cluster_helper.py {} "\'{}\'" {}'.format('utils_io.copy_tiff_files_in_order',source_movie_directory,temp_movie_directory)]
+        bash_command = r" && ".join(cluster_command_list)+ r" &"
+        os.system(bash_command)
+        print('copying files over')
         #% select the first Z-stack in the FOV directory
         available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
         for zstackname in available_z_stacks:
