@@ -5,12 +5,22 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import os
+import shutil
 from utils import utils_imaging
-local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
-metadata_dir = '/mnt/Data/BCI_metadata/'
-raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
-subject = 'BCI_29'
-setup = 'Bergamo-2P-Photostim'
+import sys
+
+local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
+metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
+raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
+suite2p_dir_base = sys.argv[4]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
+try:
+    subject = sys.argv[5]#'BCI_29'
+except:
+    subject = None
+try:
+    setup = sys.argv[6]#'Bergamo-2P-Photostim'
+except:
+    setup = None
 
 #% metadata will be updated manually, this script will read .csv files
 subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
@@ -36,8 +46,6 @@ for session in sessions:
         session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session]
     else:
         session_date_dict[session_date.date()] = session
-#%%
-
 
 FOV_list_ = np.unique(np.asarray(subject_metadata['FOV'].values,str))
 FOV_list = []
@@ -52,13 +60,18 @@ for FOV in FOV_list:
         session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
         if type(z_stack) is not str:
             continue
-        
+        z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
+        Path(z_stack_dir).mkdir(exist_ok = True, parents = True)
+        z_stack_save_name = '{}_{}'.format(session,z_stack)
+        if z_stack_save_name in os.listdir(z_stack_dir): 
+            continue #already done
         tiff_files_in_raw_folder = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session]))
         if z_stack in tiff_files_in_raw_folder:
             temp_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(subject,session_date_dict[session],z_stack[:-4]))
             Path(temp_dir).mkdir(exist_ok = True, parents = True)
             utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session],z_stack)
                                           ,temp_dir)
+            shutil.copyfile(os.path.join(temp_dir,z_stack),os.path.join(z_stack_dir,z_stack_save_name))
         
 #%% go through raw sessions in the bucket and see if they are already registered, if not, start registering on the local hdd
 
