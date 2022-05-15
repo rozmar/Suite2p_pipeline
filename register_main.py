@@ -194,7 +194,14 @@ for FOV in FOV_list:
         copy_finished = False
         all_files_registered = False
         while not copy_finished or not all_files_registered:
-            file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+            retry_loadin_file_dict = True
+            while retry_loadin_file_dict:# sometimes the other thread is still writing this file, so reading doesn't always happen
+                try:
+                    file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+                    retry_loadin_file_dict = False
+                except:
+                    pass
+                
             copy_finished = file_dict['copy_finished']
             processes_running = 0
             movies_registered = 0
