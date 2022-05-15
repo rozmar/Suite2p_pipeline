@@ -26,7 +26,10 @@ try:
     setup = sys.argv[6]#'Bergamo-2P-Photostim'
 except:
     setup = None
-
+try:
+    max_process_num = sys.argv[7]#'Bergamo-2P-Photostim'
+except:
+    max_process_num = 3
 # =============================================================================
 # local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
 # metadata_dir = '/mnt/Data/BCI_metadata/'
@@ -48,7 +51,7 @@ s2p_params = {'max_reg_shift':50, # microns
 
 trial_number_for_mean_image = 10
 processes_running = 0
-max_process_num = 5
+
 #% metadata will be updated manually, this script will read .csv files
 subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
 #decode session dates here
