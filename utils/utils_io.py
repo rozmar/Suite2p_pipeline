@@ -237,18 +237,21 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
                      'h5_files':list()}
     if 'copied_stacks' not in file_dict.keys():
         file_dict['copied_stacks'] = list()
-    
-    for stackname in stacknames:
-        if stackname not in file_dict['copied_stacks']:
-            target_dir = os.path.join(target_movie_directory,stackname[:-4])
-            Path(target_dir).mkdir(parents = True,exist_ok = True)
-            sourcefile = os.path.join(source_movie_directory,stackname)
-            destfile = os.path.join(os.path.join(target_movie_directory,stackname[:-4]),stackname)
-            shutil.copyfile(sourcefile,destfile+'_tmp')
-            os.rename(destfile+'_tmp',destfile)
-            file_dict['copied_stacks'].append(stackname)
-            np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
-            
+    if 'copy_finished' not in file_dict.keys():
+        file_dict['copy_finished'] = False
+# =============================================================================
+#     for stackname in stacknames:
+#         if stackname not in file_dict['copied_stacks']:
+#             target_dir = os.path.join(target_movie_directory,stackname[:-4])
+#             Path(target_dir).mkdir(parents = True,exist_ok = True)
+#             sourcefile = os.path.join(source_movie_directory,stackname)
+#             destfile = os.path.join(os.path.join(target_movie_directory,stackname[:-4]),stackname)
+#             shutil.copyfile(sourcefile,destfile+'_tmp')
+#             os.rename(destfile+'_tmp',destfile)
+#             file_dict['copied_stacks'].append(stackname)
+#             np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
+#             
+# =============================================================================
     for fname in fnames:
         if fname not in file_dict['copied_files']:#dirs_in_target_dir: 
             try:
@@ -265,21 +268,25 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
             file_dict['copied_files'].append(fname)
             np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
             #break
-    h5_file_idxs = (files_dict['exts']=='.h5')
-    h5_fnames = files_dict['filenames'][h5_file_idxs]
-    for fname in h5_fnames:
-        if fname not in file_dict['h5_files'] and 'slm' in fname.lower():
-            target_dir = os.path.join(target_movie_directory,'_ws_files')
-            Path(target_dir).mkdir(parents = True,exist_ok = True)
-            sourcefile = os.path.join(source_movie_directory,fname)
-            destfile = os.path.join(os.path.join(target_movie_directory,'_ws_files'),fname)
-            shutil.copyfile(sourcefile,destfile+'_tmp')
-            os.rename(destfile+'_tmp',destfile)
-            try:
-                file_dict['h5_files'].append(fname)
-            except:
-                file_dict['h5_files'] = [fname]
-            np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
+    file_dict['copy_finished'] = True
+    np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
+# =============================================================================
+#     h5_file_idxs = (files_dict['exts']=='.h5')
+#     h5_fnames = files_dict['filenames'][h5_file_idxs]
+#     for fname in h5_fnames:
+#         if fname not in file_dict['h5_files'] and 'slm' in fname.lower():
+#             target_dir = os.path.join(target_movie_directory,'_ws_files')
+#             Path(target_dir).mkdir(parents = True,exist_ok = True)
+#             sourcefile = os.path.join(source_movie_directory,fname)
+#             destfile = os.path.join(os.path.join(target_movie_directory,'_ws_files'),fname)
+#             shutil.copyfile(sourcefile,destfile+'_tmp')
+#             os.rename(destfile+'_tmp',destfile)
+#             try:
+#                 file_dict['h5_files'].append(fname)
+#             except:
+#                 file_dict['h5_files'] = [fname]
+#             np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
+# =============================================================================
 
 
 def concatenate_suite2p_files(target_movie_directory):
