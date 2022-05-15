@@ -13,7 +13,7 @@ from utils import utils_io
 import sys
 
 
-print(os.path.dirname(__file__))
+repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'
 local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
 metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
 raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
@@ -137,7 +137,7 @@ for FOV in FOV_list:
                     file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
                 except:
                     file_dict = {'copied_files':[]}
-            cluster_command_list = ['cd {}'.format(os.path.dirname(__file__)),
+            cluster_command_list = ['cd {}'.format(repo_location),
                                     'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
             bash_command = r" && ".join(cluster_command_list)+ r" &"
             os.system(bash_command)
@@ -173,7 +173,7 @@ for FOV in FOV_list:
                     processes_running+=1
                     continue
 
-                cluster_command_list = ['cd {}'.format(os.path.dirname(__file__)),
+                cluster_command_list = ['cd {}'.format(repo_location),
                                         "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file)]
                 bash_command = r" && ".join(cluster_command_list)
                 if processes_running < max_process_num :
