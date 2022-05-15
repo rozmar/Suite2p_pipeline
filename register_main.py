@@ -141,6 +141,7 @@ for FOV in FOV_list:
                                     'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
             bash_command = r" && ".join(cluster_command_list)+ r" &"
             os.system(bash_command)
+            print(bash_command)
             print('generating reference frame')
             first_session_of_FOV = False
 
