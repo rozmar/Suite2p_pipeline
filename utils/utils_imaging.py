@@ -430,6 +430,7 @@ def register_trial(target_movie_directory,file):
         reg_dict = json.load(read_file)
     reg_dict['registration_finished'] = True
     reg_dict['registration_finished_time'] = str(time.time())
+    reg_dict['registration_speed_fps'] = ops['nframes']/(reg_dict['registration_finished_time']-reg_dict['registration_started_time'])
     with open(reg_json_file, "w") as data_file:
         json.dump(reg_dict, data_file, indent=2)
        #%% 
