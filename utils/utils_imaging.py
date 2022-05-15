@@ -278,6 +278,7 @@ def register_zstack(source_tiff,target_movie_directory):
     
     
     tifffile.imsave(reordered_tiff,tiff_reordered)
+    del tiff_reordered, tiff_orig
     
     pixelsize = metadata['roi_metadata'][0]['scanfields']['sizeXY']
     movie_dims = metadata['roi_metadata'][0]['scanfields']['pixelResolutionXY']
