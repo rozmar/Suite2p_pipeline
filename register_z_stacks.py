@@ -62,7 +62,7 @@ for FOV in FOV_list:
             continue
         z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
         Path(z_stack_dir).mkdir(exist_ok = True, parents = True)
-        z_stack_save_name = '{}_{}'.format(session,z_stack)
+        z_stack_save_name = '{}_{}.tif'.format(session,z_stack)
         if z_stack_save_name in os.listdir(z_stack_dir): 
             continue #already done
         tiff_files_in_raw_folder = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session]))
@@ -71,7 +71,5 @@ for FOV in FOV_list:
             Path(temp_dir).mkdir(exist_ok = True, parents = True)
             utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session],z_stack)
                                           ,temp_dir)
-            shutil.copyfile(os.path.join(temp_dir,z_stack),os.path.join(z_stack_dir,z_stack_save_name))
-        
-#%% go through raw sessions in the bucket and see if they are already registered, if not, start registering on the local hdd
-
+            new_zstack_name = '{}_{}_{}'.format(subject,session_date_dict[session],z_stack[:-4])
+            shutil.copyfile(os.path.join(temp_dir,new_zstack_name),os.path.join(z_stack_dir,new_zstack_name))
