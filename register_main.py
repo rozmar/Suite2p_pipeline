@@ -183,8 +183,22 @@ for FOV in FOV_list:
                 all_files_registered = False
             print('{} running processes, {} files registered out of {}'.format(processes_running, movies_registered,len(file_dict['copied_files'])))
             time.sleep(3)
+        #%% concatenating
+        concatenated_movie_dir = os.path.join(temp_movie_directory,'_concatenated_movie')
+        Path(concatenated_movie_dir).mkdir(parents = True,exist_ok = True)
+        os.chmod(concatenated_movie_dir, 0o777 )
+        utils_io.concatenate_suite2p_files(temp_movie_directory)
+        # archiving
+        archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
+        Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
+        command_list = ['cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
+                        'cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
+                        'cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
+        bash_command = r" && ".join(command_list)
+        print(bash_command)
+        os.system(bash_command)
         
-        
+        os.system('rm -r {}'.format(temp_movie_directory))
         
         
 #%% go through raw sessions in the bucket and see if they are already registered, if not, start registering on the local hdd
