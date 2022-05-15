@@ -313,7 +313,7 @@ def register_zstack(source_tiff,target_movie_directory):
     
     ops['data_path'] = target_movie_directory
     ops['tiff_list'] = [reordered_tiff]
-    ops['batch_size'] = 100
+    ops['batch_size'] = 50
     ops['nplanes'] = int(metadata['metadata']['hStackManager']['numSlices'])
     ops['do_registration'] = 1
     ops['roidetect'] = False
@@ -381,7 +381,7 @@ def register_trial(target_movie_directory,file):
     #ops['smooth_sigma_time'] = s2p_params['smooth_sigma_time']*float(metadata['frame_rate']) # ops['tau']*ops['fs']#
     ops['data_path'] = target_movie_directory
     ops['tiff_list'] = [tiff_now]
-    ops['batch_size'] = 250
+    ops['batch_size'] = s2p_params['batch_size']#250
     ops['do_registration'] = 1
     ops['roidetect'] = False
     meanimage_dict = np.load(os.path.join(target_movie_directory,'mean_image.npy'),allow_pickle = True).tolist()
@@ -474,7 +474,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
     ops['smooth_sigma'] = s2p_params['smooth_sigma']/np.min(pixelsize_real)#pixelsize_real #ops['diameter']/10 #
     #ops['smooth_sigma_time'] = s2p_params['smooth_sigma_time']*float(metadata['frame_rate']) # ops['tau']*ops['fs']#
     ops['data_path'] = reference_movie_dir
-    ops['batch_size'] = 250
+    ops['batch_size'] = s2p_params['batch_size']#250
     ops['do_registration'] = 0
     ops['roidetect'] = False
     ops['do_bidiphase'] = True
