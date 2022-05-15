@@ -43,6 +43,7 @@ s2p_params = {'max_reg_shift':50, # microns
             #'num_workers':4,
             'z_stack_name':'',
             'reference_session':''} # folder where the suite2p output is saved
+
 trial_number_for_mean_image = 10
 processes_running = 0
 max_process_num = 5
@@ -134,7 +135,7 @@ for FOV in FOV_list:
                     file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
                 except:
                     file_dict = {'copied_files':[]}
-            cluster_command_list = ['cd /home/rozmar/Scripts/BCI_pipeline',
+            cluster_command_list = ['cd {}'.format(os.path.dirname(__file__)),
                                     'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
             bash_command = r" && ".join(cluster_command_list)+ r" &"
             os.system(bash_command)
@@ -170,7 +171,7 @@ for FOV in FOV_list:
                     processes_running+=1
                     continue
 
-                cluster_command_list = ['cd /home/rozmar/Scripts/BCI_pipeline',
+                cluster_command_list = ['cd {}'.format(os.path.dirname(__file__)),
                                         "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file)]
                 bash_command = r" && ".join(cluster_command_list)
                 if processes_running < max_process_num :
