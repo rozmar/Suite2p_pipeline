@@ -45,7 +45,7 @@ s2p_params = {'max_reg_shift':50, # microns
             'smooth_sigma':0.5, # microns
             'smooth_sigma_time':0, #seconds,
             'overwrite': False,
-            'batch_size':50,
+            'batch_size':100,
             #'num_workers':4,
             'z_stack_name':'',
             'reference_session':''} # folder where the suite2p output is saved
