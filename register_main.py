@@ -230,6 +230,7 @@ for FOV in FOV_list:
                     bash_command = bash_command + '&'
                     os.system(bash_command)
                     processes_running+=1
+                    break # adding only a single thread at a time so they will do slightly different things..
                     
                 else:
                     break
