@@ -27,7 +27,7 @@ try:
 except:
     setup = None
 try:
-    max_process_num = sys.argv[7]#'Bergamo-2P-Photostim'
+    max_process_num = int(sys.argv[7])#'Bergamo-2P-Photostim'
 except:
     max_process_num = 3
 # =============================================================================
