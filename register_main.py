@@ -31,7 +31,7 @@ try:
 except:
     max_process_num = 3
 try:
-    batch_size = int(sys.argv[7])#'Bergamo-2P-Photostim'
+    batch_size = int(sys.argv[8])#'Bergamo-2P-Photostim'
 except:
     batch_size = 50
 # =============================================================================
@@ -303,9 +303,9 @@ for FOV in FOV_list:
         
         
         Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
-        command_list = ['cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
-                        'cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
-                        'cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
+        command_list = ['gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
+                        'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
+                        'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
         bash_command = r" && ".join(command_list)
         print(bash_command)
         os.system(bash_command)
