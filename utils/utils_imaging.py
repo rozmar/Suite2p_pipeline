@@ -366,7 +366,7 @@ def register_trial(target_movie_directory,file):
         ops['nchannels'] = 2
     else:
         ops['nchannels'] = 1
-    ops['tau'] = 1
+    ops['tau'] = 2
     ops['maxregshift'] =  s2p_params['max_reg_shift']/np.max(FOV)
     ops['nimg_init'] = 500
     ops['nonrigid'] = True
@@ -464,7 +464,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         ops['nchannels'] = 2
     else:
         ops['nchannels'] = 1
-    ops['tau'] = 1
+    ops['tau'] = 2
     ops['maxregshift'] =  s2p_params['max_reg_shift']/np.max(FOV)
     ops['nimg_init'] = 500
     ops['nonrigid'] = True
@@ -568,8 +568,6 @@ def find_ROIs(full_movie_dir):
     
     
             #%
-    if 'BCI_10' in full_movie_dir or 'BCI_14'in full_movie_dir: #GCaMP8s
-        ops['tau'] = .25
     ops['do_registration'] = 0
     ops['save_path'] = full_movie_dir
     ops['allow_overlap'] = False

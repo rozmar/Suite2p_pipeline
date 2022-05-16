@@ -3,7 +3,7 @@
 #%% import libraries and set parameters
 import pandas as pd
 import numpy as np
-import threading
+
 from pathlib import Path
 import os
 import json
@@ -11,7 +11,7 @@ import time
 import shutil
 from utils import utils_io
 import sys
-
+from suite2p.io.binary import BinaryFile
 
 repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'
 local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
@@ -45,11 +45,12 @@ s2p_params = {'max_reg_shift':50, # microns
             'smooth_sigma':0.5, # microns
             'smooth_sigma_time':0, #seconds,
             'overwrite': False,
-            'batch_size':25,
+            'batch_size':50,
             #'num_workers':4,
             'z_stack_name':'',
             'reference_session':''} # folder where the suite2p output is saved
-
+photostim_name_list = ['slm','stim','file','photo']
+acceptable_z_range_for_binned_movie = 1
 trial_number_for_mean_image = 10
 processes_running = 0
 
@@ -252,7 +253,46 @@ for FOV in FOV_list:
         Path(concatenated_movie_dir).mkdir(parents = True,exist_ok = True)
         os.chmod(concatenated_movie_dir, 0o777 )
         utils_io.concatenate_suite2p_files(temp_movie_directory)
+        #%%
+        
+        
+        ops = np.load(os.path.join(concatenated_movie_dir,'ops.npy'),allow_pickle=True).tolist()
+        z_plane_indices = np.argmax(ops['zcorr_list'],1)
+        needed_z = np.median(z_plane_indices)
+        needed_trials = z_plane_indices == needed_z #
+        with open(os.path.join(concatenated_movie_dir,'filelist.json')) as f:
+            filelist_dict = json.load(f)
+        ops['nframes'] = sum(ops['nframes_list'])
+        ops['reg_file'] = os.path.join(concatenated_movie_dir,'data.bin')
+        ops['fs'] = np.mean(ops['fs_list'])
+        bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(ops['tau'] * ops['fs'])))
+        badframes = np.asarray(np.zeros(ops['nframes']),bool)
+        frames_so_far = 0
+        
+        for framenum, filename,z in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],z_plane_indices):
+            bad_trial = False
+            for photo_name in photostim_name_list:
+                if photo_name in filename.lower():
+                    bad_trial=True
+            if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie:
+                bad_trial=True
+            if bad_trial:
+                badframes[frames_so_far:frames_so_far+framenum] = True
+            frames_so_far+=framenum
+            
+        #%
+        with BinaryFile(read_filename=ops['reg_file'], Ly=ops['Ly'], Lx=ops['Lx']) as f:
+            mov = f.bin_movie(
+                bin_size=bin_size,
+                bad_frames=badframes,
+                y_range=None,
+                x_range=None,
+            )
+        np.save(os.path.join(concatenated_movie_dir,'binned_movie.npy'),mov)
+        del mov
+        #np.save(os.path.join(concatenated_movie_dir,'binned_movie_indices.npy'),np.where(badframes==False)[0])
         # archiving
+        
         
         Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
         command_list = ['cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
@@ -265,5 +305,4 @@ for FOV in FOV_list:
         os.system('rm -r {}'.format(temp_movie_directory))
         
         
-#%% go through raw sessions in the bucket and see if they are already registered, if not, start registering on the local hdd
 
