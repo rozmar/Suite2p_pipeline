@@ -34,6 +34,11 @@ try:
     batch_size = int(sys.argv[8])#'Bergamo-2P-Photostim'
 except:
     batch_size = 50
+try:
+    FOV_needed = int(sys.argv[])#'Bergamo-2P-Photostim'
+except:
+    FOV_needed = None   
+
 # =============================================================================
 # local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
 # metadata_dir = '/mnt/Data/BCI_metadata/'
@@ -89,6 +94,9 @@ for FOV in FOV_list_:
         FOV_list.append(FOV)
 
 for FOV in FOV_list:
+    if FOV_needed is not None:
+        if FOV.lower() != FOV_needed.lower():
+            continue
     first_session_of_FOV = True
     session_dates = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
     training_types = subject_metadata.loc[subject_metadata['FOV']==FOV,'Training type']
