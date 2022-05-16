@@ -9,16 +9,18 @@ gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./buc
 
 ## Install
 ```
-mkdir scripts
-cd scripts
+mkdir Scripts
+cd Scripts
 git clone https://github.com/rozmar/suite2p.git
 cd suite2p
-conda env create -f environment.yml -y
+conda env create -f environment.yml
 conda activate bci_with_suite2p
 pip install -e .
 cd ..
 git clone https://github.com/rozmar/Suite2p_pipeline.git
 cd Suite2p_pipeline 
+python ./register_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 4 50 FOV_02
+
 python ./register_z_stacks.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 
 
 ```
