@@ -35,7 +35,7 @@ try:
 except:
     batch_size = 50
 try:
-    FOV_needed = int(sys.argv[])#'Bergamo-2P-Photostim'
+    FOV_needed = int(sys.argv[9])#'Bergamo-2P-Photostim'
 except:
     FOV_needed = None   
 
