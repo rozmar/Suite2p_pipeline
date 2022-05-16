@@ -30,6 +30,10 @@ try:
     max_process_num = int(sys.argv[7])#'Bergamo-2P-Photostim'
 except:
     max_process_num = 3
+try:
+    batch_size = int(sys.argv[7])#'Bergamo-2P-Photostim'
+except:
+    batch_size = 50
 # =============================================================================
 # local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
 # metadata_dir = '/mnt/Data/BCI_metadata/'
@@ -45,7 +49,7 @@ s2p_params = {'max_reg_shift':50, # microns
             'smooth_sigma':0.5, # microns
             'smooth_sigma_time':0, #seconds,
             'overwrite': False,
-            'batch_size':50,
+            'batch_size':batch_size,
             #'num_workers':4,
             'z_stack_name':'',
             'reference_session':''} # folder where the suite2p output is saved
@@ -230,7 +234,11 @@ for FOV in FOV_list:
                 cluster_command_list = ['cd {}'.format(repo_location),
                                         "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file)]
                 bash_command = r" && ".join(cluster_command_list)
-                if processes_running < max_process_num :
+                if not copy_finished:
+                    max_process_num_ = 2
+                else:
+                    max_process_num_ = max_process_num
+                if processes_running < max_process_num_ :
                     print('starting {}'.format(file))
                     reg_dict['registration_started'] = True
                     with open(reg_json_file, "w") as data_file:
