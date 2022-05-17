@@ -19,8 +19,16 @@ pip install -e .
 cd ..
 git clone https://github.com/rozmar/Suite2p_pipeline.git
 cd Suite2p_pipeline 
-python ./register_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 4 50 FOV_02
 
+```
+
+## Register Z-stacks
+
+```
 python ./register_z_stacks.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 
+```
 
+## Register sessions
+```
+python ./register_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 4 50 FOV_02
 ```
