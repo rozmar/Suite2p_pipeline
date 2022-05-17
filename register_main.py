@@ -309,10 +309,9 @@ for FOV in FOV_list:
         #np.save(os.path.join(concatenated_movie_dir,'binned_movie_indices.npy'),np.where(badframes==False)[0])
         # archiving
         
-        
         Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
         command_list = ['gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
-                        'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
+                        'gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
                         'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
         bash_command = r" && ".join(command_list)
         print(bash_command)
