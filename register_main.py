@@ -227,8 +227,16 @@ for FOV in FOV_list:
                 dir_now = os.path.join(temp_movie_directory,file[:-4])
                 reg_json_file = os.path.join(temp_movie_directory,file[:-4],'reg_progress.json')
                 if 'reg_progress.json' in os.listdir(dir_now):
-                    with open(reg_json_file, "r") as read_file:
-                        reg_dict = json.load(read_file)
+                    success = False
+                    while not success:
+                        try:
+                            with open(reg_json_file, "r") as read_file:
+                                reg_dict = json.load(read_file)
+                                success = True
+                        except:
+                            print('json not ready, retrying..')
+                            pass # json file is not ready yet
+
                 else:
                     reg_dict = {'registration_started':False}
                 if 'registration_finished' in reg_dict.keys():
