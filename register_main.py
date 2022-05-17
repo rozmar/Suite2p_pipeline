@@ -38,7 +38,7 @@ try:
     FOV_needed = sys.argv[9]#'Bergamo-2P-Photostim'
 except:
     FOV_needed = None   
-
+suite2p_dir_base_gs = 'gs://aind-transfer-service-test/marton.rozsa/Data/Calcium_imaging/suite2p/'#TODO this is hard-coded
 # =============================================================================
 # local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
 # metadata_dir = '/mnt/Data/BCI_metadata/'
@@ -110,6 +110,7 @@ for FOV in FOV_list:
             continue
         session = session_date_dict[session_date]
         archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
+        archive_movie_directory_gs = os.path.join(suite2p_dir_base_gs,setup,subject,FOV,session)
         if os.path.exists(archive_movie_directory):
             if len(os.listdir(archive_movie_directory))>1:
                 print('{} already registered and saved, skipping')
@@ -319,7 +320,7 @@ for FOV in FOV_list:
         
         Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
         command_list = ['gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
-                        'gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory),
+                        'gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory_gs),
                         'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
         bash_command = r" && ".join(command_list)
         print(bash_command)
