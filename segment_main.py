@@ -30,13 +30,17 @@ xoff_std_list_concatenated = []
 yoff_std_list_concatenated = []
 trial_i = 0
 new_session_idx =[]
+new_session_names = []
 median_z_values = []
 xoff_list = []
 yoff_list = []
+session_data_dict = {}
 for session in sessions:
     if 'z-stack' in session.lower() or '.' in session:
         continue
+    print(session)
     new_session_idx.append(trial_i)
+    new_session_names.append(session)
     with open(os.path.join(FOV_dir,session,'filelist.json')) as f:
         filelist_dict = json.load(f)
     ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
@@ -67,13 +71,15 @@ for session in sessions:
             yoff_std_now.append(np.std(yoff))
             zoff_now.append(z)
             
-            xoff_list.append(ops['xoff'])
-            yoff_list.append(ops['yoff'])
+            xoff_list.append(xoff)
+            yoff_list.append(yoff)
             
             if np.std(xoff)>5:
                 print(filename)
         framenum_so_far += framenum
-            
+    session_data_dict[session] = {'xoff':xoff_list,
+                                  'yoff':yoff_list,
+                                  'zoff':zoff_now}
     
     xoff_mean_list_concatenated.extend(xoff_mean_now)
     yoff_mean_list_concatenated.extend(yoff_mean_now)
@@ -82,6 +88,7 @@ for session in sessions:
     zcorr_list_concatenated.extend(zoff_now)
     trial_i += len(xoff_mean_now)
     median_z_values.append(np.median(np.argmax(zoff_now,2).squeeze()))
+new_session_idx.append(trial_i) # end of all trials
 xoff_mean_list_concatenated = np.asarray(xoff_mean_list_concatenated)        
 yoff_mean_list_concatenated = np.asarray(yoff_mean_list_concatenated)        
 xoff_std_list_concatenated = np.asarray(xoff_std_list_concatenated)        
@@ -95,14 +102,15 @@ zcorr_list_concatenated_norm = (zcorr_list_concatenated - min_zcorr_vals[:,np.ne
 hw = zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) - np.argmax(zcorr_list_concatenated_norm>.5,1)
 z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) + np.argmax(zcorr_list_concatenated_norm>.5,1))/2
 
-#%% quality check
+#%% quality check -Z position
 median_z_value = np.median(median_z_values)
 
 fig = plt.figure(figsize = [20,20])
 ax_z = fig.add_subplot(3,1,1)
-ax_xy = fig.add_subplot(3,1,2,sharex = ax_z)
+ax_z.set_title('{} --- {}'.format(subject,fov))
+ax_xy = fig.add_subplot(3,1,3,sharex = ax_z)
 ax_zz = ax_xy.twinx()
-ax_contrast = fig.add_subplot(3,1,3,sharex = ax_z)
+ax_contrast = fig.add_subplot(3,1,2,sharex = ax_z)
 ax_hw = ax_contrast.twinx()
 img = zcorr_list_concatenated.T
 ax_z.imshow(img ,aspect='auto', alpha = 1,origin='lower',cmap = 'magma')
@@ -114,19 +122,27 @@ ax_xy.errorbar(x, yoff_mean_list_concatenated,yerr = yoff_std_list_concatenated,
 ax_zz.plot(x, np.argmax(zcorr_list_concatenated.squeeze(),1),'r-',label = 'Z offset')
 ax_zz.plot(x, z_with_hw,'y-',label = 'Z offset with halfwidth')
 ax_zz.plot([x[0],x[-1]],[median_z_value-acceptable_z_range]*2,'r--')
-ax_zz.plot([x[0],x[-1]],[median_z_value+acceptable_z_range]*2,'r--')
+ax_zz.plot([x[0],x[-1]],[median_z_value+acceptable_z_range]*2,'r--',label = 'Acceptable Z offsets for segmentation')
 
 
-ax_contrast.plot(contrast,label = 'Contrast in Z location')
+ax_contrast.plot(contrast,'k-',label = 'Contrast in Z location')
 ax_contrast.plot([x[0],x[-1]],[minimum_contrast]*2,'r--')
-for idx in new_session_idx:
-    ax_z.axvline(idx,color ='red')
+for idx_start,idx_end,session in zip(new_session_idx[:-1],new_session_idx[1:],new_session_names):
+    ax_z.axvline(idx_start,color ='red')
+    #ax_z.axvline(idx_end,color ='red')
+    ax_z.text(np.mean([idx_start,idx_end]),ax_z.get_ylim()[0]+np.diff(ax_z.get_ylim())[0]/5*4,session,color = 'white',ha='center', va='center')
    
 ax_xy.legend()
+ax_xy.set_xlabel('Total trial number')
+ax_xy.set_ylabel('XY offsets (pixels)')
+ax_xy.set_ylim([ax_xy.get_ylim()[0],np.diff(ax_xy.get_ylim())+ax_xy.get_ylim()[1]])
+ax_zz.set_ylim([ax_zz.get_ylim()[0]-np.diff(ax_zz.get_ylim()),ax_zz.get_ylim()[1]])
+ax_zz.set_ylabel('Z offset (plane)')
+ax_zz.legend(loc = 'lower right')
 ax_contrast.legend()
+fig.savefig(os.path.join(FOV_dir,'XYZ_motion.pdf'), format="pdf")
 
-
-#%%
+#%% concatenate binned movie
 binned_movie_concatenated = []
 ops_loaded=  False
 for session in sessions:
@@ -136,16 +152,24 @@ for session in sessions:
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         ops_loaded = True
     new_session_idx.append(trial_i)
-    with open(os.path.join(FOV_dir,session,'filelist.json')) as f:
-        filelist_dict = json.load(f)
-    zcorr = np.asarray(filelist_dict['zoff_list']).squeeze()
+    
+# =============================================================================
+#     with open(os.path.join(FOV_dir,session,'filelist.json')) as f:
+#         filelist_dict = json.load(f)
+#     zcorr = np.asarray(filelist_dict['zoff_list']).squeeze()
+# =============================================================================
+    zcorr = session_data_dict[session]['zoff']
     max_zcorr_vals = np.max(zcorr,1)
     min_zcorr_vals = np.min(zcorr,1)
     contrast = max_zcorr_vals/min_zcorr_vals
     median_z_session = np.median(np.argmax(filelist_dict['zoff_list'],2).squeeze())
+    
+    
     if np.percentile(contrast,10)<minimum_contrast:
+        print('{} skipped due to low Z contrast'.format(session))
         continue
     if median_z_session<median_z_value-acceptable_z_range or median_z_session>median_z_value+acceptable_z_range :
+        print('{} skipped due to wrong Z position'.format(session))
         continue
     print('loading the binned movie of {}'.format(session))
     mov = np.load(os.path.join(FOV_dir,session,'binned_movie.npy'))
