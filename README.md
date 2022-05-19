@@ -32,3 +32,8 @@ python ./register_z_stacks.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/
 ```
 python ./register_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 4 50 FOV_02
 ```
+
+## Extract traces
+```
+python ./extract_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim FOV_03
+```
