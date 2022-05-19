@@ -1,5 +1,5 @@
 
-
+import shutil
 import os
 import numpy as np
 from suite2p.extraction.extract import extract_traces_from_masks
@@ -42,7 +42,10 @@ for session in sessions:
     ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
     ops['batch_size']=250
     ops['nframes'] = sum(ops['nframes_list'])
-    ops['reg_file'] = os.path.join(FOV_dir,session,'data.bin')
+    ops['reg_file'] = os.path.join(local_temp_dir,'data.bin')
+    print('copying file')
+    shutil.copyfile(os.path.join(FOV_dir,session,'data.bin'),
+                    os.path.join(local_temp_dir,'data.bin'))
     print('extracting traces from {}'.format(session))
     F, Fneu, F_chan2, Fneu_chan2, ops = extract_traces_from_masks(ops, cell_masks, neuropil_masks)
     np.save(os.path.join(FOV_dir,session,'F.npy'), F)
