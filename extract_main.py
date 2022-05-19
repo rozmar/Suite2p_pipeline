@@ -34,8 +34,8 @@ except:
 FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
 temp_FOV_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(setup,subject,fov))    
 sessions=os.listdir(FOV_dir)  
-cell_masks = np.load(os.path.join(FOV_dir, 'cell_masks.npy'))
-neuropil_masks = np.load(os.path.join(FOV_dir, 'neuropil_masks.npy'))
+cell_masks = np.load(os.path.join(FOV_dir, 'cell_masks.npy'), allow_pickle = True)
+neuropil_masks = np.load(os.path.join(FOV_dir, 'neuropil_masks.npy'), allow_pickle = True)
 for session in sessions:
     if 'z-stack' in session.lower() or '.' in session:
         continue
