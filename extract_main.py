@@ -39,6 +39,9 @@ neuropil_masks = np.load(os.path.join(FOV_dir, 'neuropil_masks.npy'), allow_pick
 for session in sessions:
     if 'z-stack' in session.lower() or '.' in session:
         continue
+    if 'F.npy' in os.listdir(os.path.join(FOV_dir,session)):
+        print('traces already exported from {}'.format(session))
+        continue
     ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
     ops['batch_size']=250
     ops['nframes'] = sum(ops['nframes_list'])
