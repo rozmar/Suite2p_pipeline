@@ -83,7 +83,10 @@ for session in sessions:
                 continue
     if session_date.date() in session_date_dict.keys():
         print('there were multiple sessions on {}'.format(session_date.date()))
-        session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session]
+        if type(session_date_dict[session_date.date()]) == list():
+            session_date_dict[session_date.date()].append(session)
+        else:
+            session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session]
     else:
         session_date_dict[session_date.date()] = session
 
