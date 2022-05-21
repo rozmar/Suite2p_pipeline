@@ -351,4 +351,26 @@ for session in sessions:
     F, Fneu, F_chan2, Fneu_chan2, ops = extract_traces_from_masks(ops, cell_masks, neuropil_masks)
     np.save(os.path.join(FOV_dir,session,'F.npy'), F)
     np.save(os.path.join(FOV_dir,session,'Fneu.npy'), Fneu)
-#%% save plots and ROIs in FOV folder - also generate MEGATIFF
+#%% generate MEGATIFF
+
+import cv2
+import tifffile
+imgs_all = []
+for i,session in enumerate(sessions):
+    if 'z-stack' in session.lower() or '.' in session:
+        continue
+
+    imgs_ = np.load(os.path.join(FOV_dir,session,'meanImg.npy'))
+    imgs = []
+    for ti,img in enumerate(imgs_):
+        texted_image =cv2.putText(img=np.copy(img), text="{}_T{}".format(session,ti), org=(20,40),fontFace=3, fontScale=1, color=(255,255,255), thickness=2)
+        imgs.append(texted_image)
+        print([i,ti])
+    imgs = np.asarray(imgs,dtype = np.int32)
+    if len(imgs_all) == 0:
+        imgs_all = imgs
+    else:
+        imgs_all = np.concatenate([imgs_all,imgs])
+    i+=1
+tifffile.imsave(os.path.join(FOV_dir,'meanimages.tiff'),imgs_all)
+ 
