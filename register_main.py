@@ -108,225 +108,230 @@ for FOV in FOV_list:
         if session_date not in session_date_dict.keys():
             print('session not found in raw scanimage folder: {}'.format(session_date))
             continue
-        session = session_date_dict[session_date]
-        archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
-        archive_movie_directory_gs = os.path.join(suite2p_dir_base_gs,setup,subject,FOV,session)
-        if os.path.exists(archive_movie_directory):
-            if len(os.listdir(archive_movie_directory))>1:
-                print('{} already registered and saved, skipping')
-                first_session_of_FOV = False
-                reference_session_name = session
-                continue
-        # start copying files to local drive
-        source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
-        temp_movie_directory = os.path.join(local_temp_dir,'{}_{}'.format(subject,session))
-# =============================================================================
-#         copy_thread = threading.Thread(target = utils_io.copy_tiff_files_in_order, args = (source_movie_directory,temp_movie_directory))
-#         copy_thread.start()
-# =============================================================================
-
-        cluster_command_list = ['cd {}'.format(repo_location),
-                                
-                                'python cluster_helper.py {} "\'{}\'" {}'.format('utils_io.copy_tiff_files_in_order',source_movie_directory,temp_movie_directory)]
-        bash_command = r" && ".join(cluster_command_list)+ r" &"
-        print('copying files over - and not waiting for it')
-        os.system(bash_command)
-        
-        #% select the first Z-stack in the FOV directory
-        available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
-        for zstackname in available_z_stacks:
-            if '.tif' in zstackname:
-                Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
-                shutil.copyfile(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks',zstackname),
-                                 os.path.join(temp_movie_directory,zstackname[:-4],zstackname))
-                continue
-            else:
-                zstackname = None
-        s2p_params['z_stack_name'] =zstackname
-        sp2_params_file = os.path.join(temp_movie_directory,'s2p_params.json')
-        #%
-        with open(sp2_params_file, "w") as data_file:
-            json.dump(s2p_params, data_file, indent=2)
-        #% 
-        if first_session_of_FOV: # first session needs a mean image to be generated
-            reference_movie_dir = os.path.join(temp_movie_directory,'_reference_image')
-            Path(reference_movie_dir).mkdir(parents = True,exist_ok = True)
-            os.chmod(reference_movie_dir, 0o777)
-            reference_movie_json = os.path.join(temp_movie_directory,'_reference_image','refimage_progress.json')
-            refimage_dict = {'ref_image_started':True,
-                             'ref_image_finished':False,
-                             'ref_image_started_time': str(time.time())}
-            with open(reference_movie_json, "w") as data_file:
-                json.dump(refimage_dict, data_file, indent=2)
-            trial_num_to_use = int(trial_number_for_mean_image)
-            #%
-            try:
-                file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
-            except:
-                file_dict = {'copied_files':[]}
-            while len(file_dict['copied_files'])<trial_num_to_use+1:
-                
-                print('waiting for {} trials to be available for generating reference frame -- already got {}'.format(trial_num_to_use,file_dict['copied_files']))
-                time.sleep(3)
-                try:
-                    file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
-                except:
-                    file_dict = {'copied_files':[]}
+        session_ = session_date_dict[session_date]
+        if type(session)== str:
+            session_ = [session_]
+        for session in session_:
+            
+            
+            archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
+            archive_movie_directory_gs = os.path.join(suite2p_dir_base_gs,setup,subject,FOV,session)
+            if os.path.exists(archive_movie_directory):
+                if len(os.listdir(archive_movie_directory))>1:
+                    print('{} already registered and saved, skipping')
+                    first_session_of_FOV = False
+                    reference_session_name = session
+                    continue
+            # start copying files to local drive
+            source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
+            temp_movie_directory = os.path.join(local_temp_dir,'{}_{}'.format(subject,session))
+    # =============================================================================
+    #         copy_thread = threading.Thread(target = utils_io.copy_tiff_files_in_order, args = (source_movie_directory,temp_movie_directory))
+    #         copy_thread.start()
+    # =============================================================================
+    
             cluster_command_list = ['cd {}'.format(repo_location),
-                                    'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
+                                    
+                                    'python cluster_helper.py {} "\'{}\'" {}'.format('utils_io.copy_tiff_files_in_order',source_movie_directory,temp_movie_directory)]
             bash_command = r" && ".join(cluster_command_list)+ r" &"
+            print('copying files over - and not waiting for it')
             os.system(bash_command)
-            print(bash_command)
-            print('generating reference frame')
-            reference_session_name = session
-            first_session_of_FOV = False
-        else: #copy reference frame over from previous session
             
-            reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,reference_session_name)
-        
-            with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
-                filelist_dict_ = json.load(f)
-            ops = np.load(os.path.join(reference_movie_directory,'ops.npy'),allow_pickle=True).tolist()
-            z_plane_indices = np.argmax(ops['zcorr_list'],1)
-            needed_trials = z_plane_indices == np.median(z_plane_indices) #
-            meanimage_all = np.load(os.path.join(reference_movie_directory,'meanImg.npy'))
-            mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
-            meanimage_dict = {'refImg':mean_img,
-                              'movies_used':np.asarray(filelist_dict_['file_name_list'])[needed_trials],
-                              'reference_session':reference_session_name}
-            np.save(os.path.join(temp_movie_directory,'mean_image.npy'),meanimage_dict) 
-            del meanimage_all, mean_img
-            
-            s2p_params['reference_session'] =reference_session_name
+            #% select the first Z-stack in the FOV directory
+            available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
+            for zstackname in available_z_stacks:
+                if '.tif' in zstackname:
+                    Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
+                    shutil.copyfile(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks',zstackname),
+                                     os.path.join(temp_movie_directory,zstackname[:-4],zstackname))
+                    continue
+                else:
+                    zstackname = None
+            s2p_params['z_stack_name'] =zstackname
             sp2_params_file = os.path.join(temp_movie_directory,'s2p_params.json')
             #%
             with open(sp2_params_file, "w") as data_file:
                 json.dump(s2p_params, data_file, indent=2)
-                
-
-        #%% registering
-        copy_finished = False
-        all_files_registered = False
-        while not copy_finished or not all_files_registered:
-            retry_loadin_file_dict = True
-            while retry_loadin_file_dict:# sometimes the other thread is still writing this file, so reading doesn't always happen
+            #% 
+            if first_session_of_FOV: # first session needs a mean image to be generated
+                reference_movie_dir = os.path.join(temp_movie_directory,'_reference_image')
+                Path(reference_movie_dir).mkdir(parents = True,exist_ok = True)
+                os.chmod(reference_movie_dir, 0o777)
+                reference_movie_json = os.path.join(temp_movie_directory,'_reference_image','refimage_progress.json')
+                refimage_dict = {'ref_image_started':True,
+                                 'ref_image_finished':False,
+                                 'ref_image_started_time': str(time.time())}
+                with open(reference_movie_json, "w") as data_file:
+                    json.dump(refimage_dict, data_file, indent=2)
+                trial_num_to_use = int(trial_number_for_mean_image)
+                #%
                 try:
                     file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
-                    retry_loadin_file_dict = False
                 except:
-                    pass
-                
-            copy_finished = file_dict['copy_finished']
-            processes_running = 0
-            movies_registered = 0
-            for file in file_dict['copied_files']:
-                if not os.path.exists(os.path.join(temp_movie_directory,'mean_image.npy')):
-                    print('no reference image!!')
-                    time.sleep(3)
-                    break
-                
-                dir_now = os.path.join(temp_movie_directory,file[:-4])
-                reg_json_file = os.path.join(temp_movie_directory,file[:-4],'reg_progress.json')
-                if 'reg_progress.json' in os.listdir(dir_now):
-                    success = False
-                    while not success:
-                        try:
-                            with open(reg_json_file, "r") as read_file:
-                                reg_dict = json.load(read_file)
-                                success = True
-                        except:
-                            print('json not ready, retrying..')
-                            pass # json file is not ready yet
-
-                else:
-                    reg_dict = {'registration_started':False}
-                if 'registration_finished' in reg_dict.keys():
-                    if reg_dict['registration_finished']:
-                        movies_registered+=1
-                        continue
-                if reg_dict['registration_started']:
-                    processes_running+=1
-                    continue
-
-                cluster_command_list = ['cd {}'.format(repo_location),
-                                        "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file)]
-                bash_command = r" && ".join(cluster_command_list)
-                if not copy_finished:
-                    max_process_num_ = 2
-                else:
-                    max_process_num_ = max_process_num
-                if processes_running < max_process_num_ :
-                    print('starting {}'.format(file))
-                    reg_dict['registration_started'] = True
-                    with open(reg_json_file, "w") as data_file:
-                        json.dump(reg_dict, data_file, indent=2)
-                    bash_command = bash_command + '&'
-                    os.system(bash_command)
-                    processes_running+=1
-                    break # adding only a single thread at a time so they will do slightly different things..
+                    file_dict = {'copied_files':[]}
+                while len(file_dict['copied_files'])<trial_num_to_use+1:
                     
-                else:
-                    break
-            if movies_registered == len(file_dict['copied_files']):
-                all_files_registered = True
-            else:
-                all_files_registered = False
-            print('{} running processes, {} files registered out of {}'.format(processes_running, movies_registered,len(file_dict['copied_files'])))
-            time.sleep(3)
-        #%% concatenating
-        concatenated_movie_dir = os.path.join(temp_movie_directory,'_concatenated_movie')
-        Path(concatenated_movie_dir).mkdir(parents = True,exist_ok = True)
-        os.chmod(concatenated_movie_dir, 0o777 )
-        utils_io.concatenate_suite2p_files(temp_movie_directory)
-        #%%
-        
-        
-        ops = np.load(os.path.join(concatenated_movie_dir,'ops.npy'),allow_pickle=True).tolist()
-        z_plane_indices = np.argmax(ops['zcorr_list'],1)
-        needed_z = np.median(z_plane_indices)
-        needed_trials = z_plane_indices == needed_z #
-        with open(os.path.join(concatenated_movie_dir,'filelist.json')) as f:
-            filelist_dict = json.load(f)
-        ops['nframes'] = sum(ops['nframes_list'])
-        ops['reg_file'] = os.path.join(concatenated_movie_dir,'data.bin')
-        ops['fs'] = np.mean(ops['fs_list'])
-        bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(ops['tau'] * ops['fs'])))
-        badframes = np.asarray(np.zeros(ops['nframes']),bool)
-        frames_so_far = 0
-        
-        for framenum, filename,z in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],z_plane_indices):
-            bad_trial = False
-            for photo_name in photostim_name_list:
-                if photo_name in filename.lower():
-                    bad_trial=True
-            if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie:
-                bad_trial=True
-            if bad_trial:
-                badframes[frames_so_far:frames_so_far+framenum] = True
-            frames_so_far+=framenum
+                    print('waiting for {} trials to be available for generating reference frame -- already got {}'.format(trial_num_to_use,file_dict['copied_files']))
+                    time.sleep(3)
+                    try:
+                        file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+                    except:
+                        file_dict = {'copied_files':[]}
+                cluster_command_list = ['cd {}'.format(repo_location),
+                                        'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
+                bash_command = r" && ".join(cluster_command_list)+ r" &"
+                os.system(bash_command)
+                print(bash_command)
+                print('generating reference frame')
+                reference_session_name = session
+                first_session_of_FOV = False
+            else: #copy reference frame over from previous session
+                
+                reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,reference_session_name)
             
-        #%
-        with BinaryFile(read_filename=ops['reg_file'], Ly=ops['Ly'], Lx=ops['Lx']) as f:
-            mov = f.bin_movie(
-                bin_size=bin_size,
-                bad_frames=badframes,
-                y_range=None,
-                x_range=None,
-            )
-        np.save(os.path.join(concatenated_movie_dir,'binned_movie.npy'),mov)
-        del mov
-        #np.save(os.path.join(concatenated_movie_dir,'binned_movie_indices.npy'),np.where(badframes==False)[0])
-        # archiving
-        
-        Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
-        command_list = ['gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
-                        'gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory_gs),
-                        'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
-        bash_command = r" && ".join(command_list)
-        print(bash_command)
-        os.system(bash_command)
-        
-        os.system('rm -r {}'.format(temp_movie_directory))
+                with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
+                    filelist_dict_ = json.load(f)
+                ops = np.load(os.path.join(reference_movie_directory,'ops.npy'),allow_pickle=True).tolist()
+                z_plane_indices = np.argmax(ops['zcorr_list'],1)
+                needed_trials = z_plane_indices == np.median(z_plane_indices) #
+                meanimage_all = np.load(os.path.join(reference_movie_directory,'meanImg.npy'))
+                mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
+                meanimage_dict = {'refImg':mean_img,
+                                  'movies_used':np.asarray(filelist_dict_['file_name_list'])[needed_trials],
+                                  'reference_session':reference_session_name}
+                np.save(os.path.join(temp_movie_directory,'mean_image.npy'),meanimage_dict) 
+                del meanimage_all, mean_img
+                
+                s2p_params['reference_session'] =reference_session_name
+                sp2_params_file = os.path.join(temp_movie_directory,'s2p_params.json')
+                #%
+                with open(sp2_params_file, "w") as data_file:
+                    json.dump(s2p_params, data_file, indent=2)
+                    
+    
+            #%% registering
+            copy_finished = False
+            all_files_registered = False
+            while not copy_finished or not all_files_registered:
+                retry_loadin_file_dict = True
+                while retry_loadin_file_dict:# sometimes the other thread is still writing this file, so reading doesn't always happen
+                    try:
+                        file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+                        retry_loadin_file_dict = False
+                    except:
+                        pass
+                    
+                copy_finished = file_dict['copy_finished']
+                processes_running = 0
+                movies_registered = 0
+                for file in file_dict['copied_files']:
+                    if not os.path.exists(os.path.join(temp_movie_directory,'mean_image.npy')):
+                        print('no reference image!!')
+                        time.sleep(3)
+                        break
+                    
+                    dir_now = os.path.join(temp_movie_directory,file[:-4])
+                    reg_json_file = os.path.join(temp_movie_directory,file[:-4],'reg_progress.json')
+                    if 'reg_progress.json' in os.listdir(dir_now):
+                        success = False
+                        while not success:
+                            try:
+                                with open(reg_json_file, "r") as read_file:
+                                    reg_dict = json.load(read_file)
+                                    success = True
+                            except:
+                                print('json not ready, retrying..')
+                                pass # json file is not ready yet
+    
+                    else:
+                        reg_dict = {'registration_started':False}
+                    if 'registration_finished' in reg_dict.keys():
+                        if reg_dict['registration_finished']:
+                            movies_registered+=1
+                            continue
+                    if reg_dict['registration_started']:
+                        processes_running+=1
+                        continue
+    
+                    cluster_command_list = ['cd {}'.format(repo_location),
+                                            "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file)]
+                    bash_command = r" && ".join(cluster_command_list)
+                    if not copy_finished:
+                        max_process_num_ = 2
+                    else:
+                        max_process_num_ = max_process_num
+                    if processes_running < max_process_num_ :
+                        print('starting {}'.format(file))
+                        reg_dict['registration_started'] = True
+                        with open(reg_json_file, "w") as data_file:
+                            json.dump(reg_dict, data_file, indent=2)
+                        bash_command = bash_command + '&'
+                        os.system(bash_command)
+                        processes_running+=1
+                        break # adding only a single thread at a time so they will do slightly different things..
+                        
+                    else:
+                        break
+                if movies_registered == len(file_dict['copied_files']):
+                    all_files_registered = True
+                else:
+                    all_files_registered = False
+                print('{} running processes, {} files registered out of {}'.format(processes_running, movies_registered,len(file_dict['copied_files'])))
+                time.sleep(3)
+            #%% concatenating
+            concatenated_movie_dir = os.path.join(temp_movie_directory,'_concatenated_movie')
+            Path(concatenated_movie_dir).mkdir(parents = True,exist_ok = True)
+            os.chmod(concatenated_movie_dir, 0o777 )
+            utils_io.concatenate_suite2p_files(temp_movie_directory)
+            #%%
+            
+            
+            ops = np.load(os.path.join(concatenated_movie_dir,'ops.npy'),allow_pickle=True).tolist()
+            z_plane_indices = np.argmax(ops['zcorr_list'],1)
+            needed_z = np.median(z_plane_indices)
+            needed_trials = z_plane_indices == needed_z #
+            with open(os.path.join(concatenated_movie_dir,'filelist.json')) as f:
+                filelist_dict = json.load(f)
+            ops['nframes'] = sum(ops['nframes_list'])
+            ops['reg_file'] = os.path.join(concatenated_movie_dir,'data.bin')
+            ops['fs'] = np.mean(ops['fs_list'])
+            bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(ops['tau'] * ops['fs'])))
+            badframes = np.asarray(np.zeros(ops['nframes']),bool)
+            frames_so_far = 0
+            
+            for framenum, filename,z in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],z_plane_indices):
+                bad_trial = False
+                for photo_name in photostim_name_list:
+                    if photo_name in filename.lower():
+                        bad_trial=True
+                if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie:
+                    bad_trial=True
+                if bad_trial:
+                    badframes[frames_so_far:frames_so_far+framenum] = True
+                frames_so_far+=framenum
+                
+            #%
+            with BinaryFile(read_filename=ops['reg_file'], Ly=ops['Ly'], Lx=ops['Lx']) as f:
+                mov = f.bin_movie(
+                    bin_size=bin_size,
+                    bad_frames=badframes,
+                    y_range=None,
+                    x_range=None,
+                )
+            np.save(os.path.join(concatenated_movie_dir,'binned_movie.npy'),mov)
+            del mov
+            #np.save(os.path.join(concatenated_movie_dir,'binned_movie_indices.npy'),np.where(badframes==False)[0])
+            # archiving
+            
+            Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
+            command_list = ['gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
+                            'gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp {} {}'.format(os.path.join(temp_movie_directory,'_concatenated_movie','*.*'),archive_movie_directory_gs),
+                            'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
+            bash_command = r" && ".join(command_list)
+            print(bash_command)
+            os.system(bash_command)
+            
+            os.system('rm -r {}'.format(temp_movie_directory))
         
         
 
