@@ -372,18 +372,14 @@ def concatenate_suite2p_files(target_movie_directory):
         else:
             
             #%
-            with open(concatenated_movie_file, "ab") as myfile, open(sourcefile, "rb") as file2:
-                myfile.write(file2.read())
-            if os.path.exists(concatenated_movie_file_chan2):
-                with open(concatenated_movie_file_chan2, "ab") as myfile, open(sourcefile_chan2, "rb") as file2:
-                    myfile.write(file2.read())
             
+            abort_concatenation = False
             if not concatenated_ops_loaded:
                 ops_concatenated = np.load(concatenated_movie_ops,allow_pickle = True).tolist()
                 meanimg_list = np.load(meanimg_file)
                 concatenated_ops_loaded = True
             
-            meanimg_list = np.concatenate([meanimg_list,[ops['meanImg']]])
+            
             
             for key in ops.keys():
                 if key == 'do_regmetrics':
@@ -418,9 +414,22 @@ def concatenate_suite2p_files(target_movie_directory):
                         try:
                             ops_concatenated[key+'_list'] = np.concatenate([ops_concatenated[key+'_list'],[ops[key]]])
                         except:
-                            ops_concatenated[key+'_list'] = np.concatenate([[ops_concatenated[key+'_list']],[ops[key]]])
-                
+                            try:
+                                ops_concatenated[key+'_list'] = np.concatenate([[ops_concatenated[key+'_list']],[ops[key]]])
+                            except:
+                                abort_concatenation = True
+                                print('could not concatenate the folowing key : {} - file {} skipped'.format(key,file))
+            
+            if abort_concatenation:
+                continue
+            
+            with open(concatenated_movie_file, "ab") as myfile, open(sourcefile, "rb") as file2:
+                myfile.write(file2.read())
+            if os.path.exists(concatenated_movie_file_chan2):
+                with open(concatenated_movie_file_chan2, "ab") as myfile, open(sourcefile_chan2, "rb") as file2:
+                    myfile.write(file2.read())
                     
+            meanimg_list = np.concatenate([meanimg_list,[ops['meanImg']]])        
                     
             #%     
             
@@ -445,8 +454,8 @@ def concatenate_suite2p_files(target_movie_directory):
             with open(concatenated_movie_filelist_json, "w") as data_file:
                 json.dump(filelist_dict, data_file, indent=2)
             #np.save(concatenated_movie_ops,ops_concatenated)        
-                
-                #break
+                    
+                    #break
 # =============================================================================
 #         except:
 #             print('error occured, progress saved nonetheless')
