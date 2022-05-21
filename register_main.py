@@ -113,7 +113,7 @@ for FOV in FOV_list:
             session_ = [session_]
         for session in session_:
             
-            
+            print(session)
             archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
             archive_movie_directory_gs = os.path.join(suite2p_dir_base_gs,setup,subject,FOV,session)
             if os.path.exists(archive_movie_directory):
