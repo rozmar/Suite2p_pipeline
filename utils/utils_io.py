@@ -308,6 +308,7 @@ def concatenate_suite2p_files(target_movie_directory):
                          'yoff_std_list':[],
                          'zoff_mean_list':[],
                          'zoff_std_list':[],
+                         'mean_instensity':[],
                          'concatenation_underway':True}
     file_dict = np.load(os.path.join(target_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
     for file_idx,file in enumerate(file_dict['copied_files']):
@@ -358,6 +359,7 @@ def concatenate_suite2p_files(target_movie_directory):
             filelist_dict['yoff_mean_list'] = [np.mean(ops['yoff'])]
             filelist_dict['xoff_std_list'] = [np.std(ops['xoff'])]
             filelist_dict['yoff_std_list'] = [np.std(ops['yoff'])]#'zcorr'
+            filelist_dict['mean_instensity'] = [np.mean(ops['meanImg'])]
             try:
                 zcorr = np.argmax(ops['zcorr'],1)
                 filelist_dict['zoff_mean_list'] = [np.mean(zcorr)]
@@ -430,6 +432,7 @@ def concatenate_suite2p_files(target_movie_directory):
             filelist_dict['yoff_mean_list'].append(np.mean(ops['yoff']))
             filelist_dict['xoff_std_list'].append(np.std(ops['xoff']))
             filelist_dict['yoff_std_list'].append(np.std(ops['yoff']))
+            filelist_dict['mean_instensity'].append(np.mean(ops['meanImg']))
             
             try:
                 zcorr = np.argmax(ops['zcorr'],1)
