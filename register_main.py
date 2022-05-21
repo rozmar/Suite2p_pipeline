@@ -109,6 +109,8 @@ for FOV in FOV_list:
             print('session not found in raw scanimage folder: {}'.format(session_date))
             continue
         session_ = session_date_dict[session_date]
+        
+        print(session_)
         if type(session)== str:
             session_ = [session_]
         for session in session_:
