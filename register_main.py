@@ -110,7 +110,7 @@ for FOV in FOV_list:
             continue
         session_ = session_date_dict[session_date]
         
-        print(session_)
+        print([session_,len(session)])
         if type(session)== str:
             session_ = [session_]
         for session in session_:
