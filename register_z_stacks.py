@@ -71,5 +71,5 @@ for FOV in FOV_list:
             Path(temp_dir).mkdir(exist_ok = True, parents = True)
             utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session],z_stack)
                                           ,temp_dir)
-            new_zstack_name = '{}_{}_{}'.format(subject,session_date_dict[session],z_stack[:-4])
+            new_zstack_name = '{}_{}_{}.tif'.format(subject,session_date_dict[session],z_stack[:-4])
             shutil.copyfile(os.path.join(temp_dir,new_zstack_name),os.path.join(z_stack_dir,new_zstack_name))
