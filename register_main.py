@@ -197,9 +197,9 @@ for FOV in FOV_list:
                 with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
                     filelist_dict_ = json.load(f)
                 ops = np.load(os.path.join(reference_movie_directory,'ops.npy'),allow_pickle=True).tolist()
-                z_plane_indices = np.argmax(ops['zcorr_list'],1)
-                z_plane_indices_2 = filelist_dict_['zoff_mean_list']
-                print([len(z_plane_indices),len(z_plane_indices_2)])
+                #z_plane_indices = np.argmax(ops['zcorr_list'],1)
+                z_plane_indices = filelist_dict_['zoff_mean_list']
+                #print([len(z_plane_indices),len(z_plane_indices_2)])
                 needed_trials = z_plane_indices == np.median(z_plane_indices) #
                 meanimage_all = np.load(os.path.join(reference_movie_directory,'meanImg.npy'))
                 mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
