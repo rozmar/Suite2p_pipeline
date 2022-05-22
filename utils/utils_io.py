@@ -563,7 +563,9 @@ def concatenate_suite2p_sessions(source_movie_directory,target_movie_directory):
             
             with open(concatenated_movie_filelist_json, "w") as data_file:
                 json.dump(filelist_dict, data_file, indent=2)
-            #np.save(concatenated_movie_ops,ops_concatenated)        
+            #np.save(concatenated_movie_ops,ops_concatenated)   
+            
+            os.system('rm {}'.format(sourcefile))
                 
                 #break
 # =============================================================================
