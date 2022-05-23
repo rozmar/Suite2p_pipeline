@@ -397,7 +397,13 @@ def register_trial(target_movie_directory,file):
     ops['force_refImg'] = True
     print('regstering {}'.format(tiff_now))
     ops['do_regmetrics'] = False
-
+    if 'slm' in tiff_now:
+        reader=ScanImageTiffReader(tiff_now)
+        data = reader.data()
+        data.shape
+        trace = np.mean(np.mean(data,1),1)
+        ops['badframes']  = trace>1.5*np.median(trace)
+        
     ops = run_s2p(ops)
     os.remove(tiff_now) # delete the raw tiff file
     #%%
