@@ -89,6 +89,7 @@ for session in sessions:
     if 'F0.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         F0 = np.zeros_like(F)
         Fvar = np.zeros_like(F)
+        print('calculating f0 for {}'.format(session))
         for cell_idx in range(F.shape[0]):
             #cell_idx =445
             f = F[cell_idx,:]
