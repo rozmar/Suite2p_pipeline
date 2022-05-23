@@ -135,14 +135,14 @@ for session in sessions:
             window_t = 1 #s
             window = int(sample_rate*window_t)
             step=int(window/2)
-            starts = np.arange(0,len(f)-window,step)
+            starts = np.arange(0,len(dff)-window,step)
             stds = list()
             for start in starts:
-                stds.append(np.std(f[start:start+window]))
+                stds.append(np.std(dff[start:start+window]))
             stds_roll = rollingfun(stds,100,'min')
             stds_roll = rollingfun(stds_roll,500,'median')
           
-            fvar = np.ones(len(f))
+            fvar = np.ones(len(dff))
             for start,var in zip(starts,stds_roll):
                 fvar[start:start+window]=var
             fvar[start:]=var
