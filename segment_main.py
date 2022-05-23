@@ -37,9 +37,9 @@ except:
     metadata_dir = '/mnt/Data/BCI_metadata/'
     raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
-    subject = 'BCI_29'
+    subject = 'BCI_26'
     setup = 'Bergamo-2P-Photostim'
-    fov = 'FOV_03'
+    fov = 'FOV_04'
     
     minimum_contrast = 5
     acceptable_z_range = 1
@@ -58,6 +58,7 @@ xoff_mean_list_concatenated = []
 yoff_mean_list_concatenated = []
 xoff_std_list_concatenated = []
 yoff_std_list_concatenated = []
+mean_intensity_list = []
 trial_i = 0
 new_session_idx =[]
 new_session_names = []
@@ -88,7 +89,8 @@ for session in sessions:
     yoff_now = []
     zoff_now = []
     framenum_so_far = 0
-    for framenum, filename,z in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],filelist_dict['zoff_list']):
+    mean_int_now = []
+    for framenum, filename,z,intensity in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],filelist_dict['zoff_list'],filelist_dict['mean_instensity']):
         bad_trial = False
         for photo_name in photostim_name_list:
             if photo_name in filename.lower():
@@ -109,6 +111,7 @@ for session in sessions:
             xoff_now.append(xoff)
             yoff_now.append(yoff)
             
+            mean_int_now.append(intensity)
             
             if np.std(xoff)>5:
                 print(filename)
@@ -122,6 +125,7 @@ for session in sessions:
     xoff_std_list_concatenated.extend(xoff_std_now)
     yoff_std_list_concatenated.extend(yoff_std_now)
     zcorr_list_concatenated.extend(zoff_now)
+    mean_intensity_list.extend(mean_int_now)
     trial_i += len(xoff_mean_now)
     median_z_values.append(np.median(np.argmax(zoff_now,2).squeeze()))
 new_session_idx.append(trial_i) # end of all trials
@@ -129,6 +133,9 @@ xoff_mean_list_concatenated = np.asarray(xoff_mean_list_concatenated)
 yoff_mean_list_concatenated = np.asarray(yoff_mean_list_concatenated)        
 xoff_std_list_concatenated = np.asarray(xoff_std_list_concatenated)        
 yoff_std_list_concatenated = np.asarray(yoff_std_list_concatenated)        
+
+mean_intensity_list = np.asarray(mean_intensity_list)      
+
 zcorr_list_concatenated = np.concatenate(zcorr_list_concatenated).squeeze()
 max_zcorr_vals = np.max(zcorr_list_concatenated,1)
 min_zcorr_vals = np.min(zcorr_list_concatenated,1)
@@ -142,18 +149,22 @@ z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concaten
 median_z_value = np.median(median_z_values)
 
 fig = plt.figure(figsize = [20,20])
-ax_z = fig.add_subplot(3,1,1)
+ax_z = fig.add_subplot(4,1,1)
 ax_z.set_title('{} --- {}'.format(subject,fov))
-ax_xy = fig.add_subplot(3,1,3,sharex = ax_z)
+ax_xy = fig.add_subplot(4,1,3,sharex = ax_z)
 ax_zz = ax_xy.twinx()
-ax_contrast = fig.add_subplot(3,1,2,sharex = ax_z)
+ax_contrast = fig.add_subplot(4,1,2,sharex = ax_z)
 ax_hw = ax_contrast.twinx()
+ax_mean_intensity = fig.add_subplot(4,1,4,sharex = ax_z)
+ax_mean_intensity.set_ylabel('Trial mean intensity (pixel value)')
 img = zcorr_list_concatenated.T
 ax_z.imshow(img ,aspect='auto', alpha = 1,origin='lower',cmap = 'magma')
 
 x = np.arange(len(xoff_mean_list_concatenated))
 ax_xy.errorbar(x, xoff_mean_list_concatenated,yerr = xoff_std_list_concatenated,fmt = '-',label = 'X offset')
 ax_xy.errorbar(x, yoff_mean_list_concatenated,yerr = yoff_std_list_concatenated,fmt = '-',label = 'Y offset')
+
+ax_mean_intensity.plot(x,mean_intensity_list,'g-')
 
 ax_zz.plot(x, np.argmax(zcorr_list_concatenated.squeeze(),1),'r-',label = 'Z offset')
 ax_zz.plot(x, z_with_hw,'y-',label = 'Z offset with halfwidth')
@@ -169,7 +180,7 @@ for idx_start,idx_end,session in zip(new_session_idx[:-1],new_session_idx[1:],ne
     ax_z.text(np.mean([idx_start,idx_end]),ax_z.get_ylim()[0]+np.diff(ax_z.get_ylim())[0]/5*4,session,color = 'white',ha='center', va='center')
    
 ax_xy.legend()
-ax_xy.set_xlabel('Total trial number')
+ax_mean_intensity.set_xlabel('Total trial number')
 ax_xy.set_ylabel('XY offsets (pixels)')
 ax_xy.set_ylim([ax_xy.get_ylim()[0],np.diff(ax_xy.get_ylim())+ax_xy.get_ylim()[1]])
 ax_zz.set_ylim([ax_zz.get_ylim()[0]-np.diff(ax_zz.get_ylim()),ax_zz.get_ylim()[1]])
@@ -179,8 +190,10 @@ ax_contrast.legend()
 fig.savefig(os.path.join(FOV_dir,'XYZ_motion.pdf'), format="pdf")
 
 #%% concatenate binned movie
+max_binned_frame_num = 7000#after this it fills up the 120GB RAM
 binned_movie_concatenated = []
 ops_loaded=  False
+total_binned_frame_num = 0
 for session in sessions:
     if 'z-stack' in session.lower() or '.' in session:
         continue
@@ -198,7 +211,7 @@ for session in sessions:
     max_zcorr_vals = np.max(zcorr,1)
     min_zcorr_vals = np.min(zcorr,1)
     contrast = max_zcorr_vals/min_zcorr_vals
-    median_z_session = np.median(np.argmax(filelist_dict['zoff_list'],2).squeeze())
+    median_z_session = np.median(np.argmax(zcorr,1))
     
     
     if np.percentile(contrast,10)<minimum_contrast:
@@ -210,7 +223,12 @@ for session in sessions:
     print('loading the binned movie of {}'.format(session))
     mov = np.load(os.path.join(FOV_dir,session,'binned_movie.npy'))
     binned_movie_concatenated.append(mov)
-binned_movie_concatenated = np.concatenate(binned_movie_concatenated)    
+    total_binned_frame_num += mov.shape[0]
+    
+binned_movie_concatenated = np.concatenate(binned_movie_concatenated)   
+#%
+t_step_size = int(np.ceil(binned_movie_concatenated.shape[0]/max_binned_frame_num))
+binned_movie_concatenated = binned_movie_concatenated[::t_step_size,:,:]
 #%% segment ROIs
 ops['xrange'] = [0, ops['Lx']]
 ops['yrange'] = [0, ops['Ly']]
@@ -287,7 +305,7 @@ np.save(os.path.join(FOV_dir, 'neuropil_masks_rest.npy'), neuropil_masks_rest)
 mean_image = np.mean(binned_movie_concatenated,0)
 max_image = np.max(binned_movie_concatenated,0)
 std_image = np.std(binned_movie_concatenated,0)
-#%%
+#%
 np.save(os.path.join(FOV_dir, 'mean_image.npy'), mean_image)
 np.save(os.path.join(FOV_dir, 'max_image.npy'), max_image)
 np.save(os.path.join(FOV_dir, 'std_image.npy'), std_image)
