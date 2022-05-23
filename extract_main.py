@@ -122,3 +122,29 @@ for session in sessions:
             Fvar[cell_idx,:] = fvar
         np.save(os.path.join(FOV_dir,session,'F0.npy'), F0)
         np.save(os.path.join(FOV_dir,session,'Fvar.npy'), Fvar)
+    else:
+        F0 = np.load(os.path.join(FOV_dir,session,'F0.npy'))
+        
+    if 'dFF_noise.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+        dfFnoise = np.zeros_like(F)
+        print('calculating dff noise for {}'.format(session))
+        for cell_idx in range(dfFnoise.shape[0]):
+            #cell_idx =445
+            dff = (F[cell_idx,:]-F0[cell_idx,:])/F0[cell_idx,:]
+            sample_rate = 20
+            window_t = 1 #s
+            window = int(sample_rate*window_t)
+            step=int(window/2)
+            starts = np.arange(0,len(f)-window,step)
+            stds = list()
+            for start in starts:
+                stds.append(np.std(f[start:start+window]))
+            stds_roll = rollingfun(stds,100,'min')
+            stds_roll = rollingfun(stds_roll,500,'median')
+          
+            fvar = np.ones(len(f))
+            for start,var in zip(starts,stds_roll):
+                fvar[start:start+window]=var
+            fvar[start:]=var
+            dfFnoise[cell_idx,:] = fvar
+        np.save(os.path.join(FOV_dir,session,'dFF_noise.npy'), dfFnoise)
