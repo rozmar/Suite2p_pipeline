@@ -409,6 +409,7 @@ def register_trial(target_movie_directory,file):
     #%%
     try:
         #%%
+        print('loading stack')
         file = s2p_params['z_stack_name']
 #%
         zstack_tiff = os.path.join(target_movie_directory,file[:-4],file)
@@ -432,12 +433,13 @@ def register_trial(target_movie_directory,file):
         #ops_orig, zcorr = registration.zalign.compute_zpos(stack, ops)
         ops_orig, zcorr = registration.zalign.compute_zpos_single_frame(stack, ops['meanImg'][np.newaxis,:,:], ops)
         np.save(ops['ops_path'], ops_orig)
-        os.remove(os.path.join(target_movie_directory,tiff_now))
+        
         #%%
         #reader.close()
         #%
     except:
         pass # no z-stack
+    os.remove(os.path.join(target_movie_directory,tiff_now))
   #%%
     with open(reg_json_file, "r") as read_file:
         reg_dict = json.load(read_file)
