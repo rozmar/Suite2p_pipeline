@@ -409,7 +409,6 @@ def register_trial(target_movie_directory,file):
     #%%
     try:
         #%%
-        print('loading stack')
         file = s2p_params['z_stack_name']
 #%
         zstack_tiff = os.path.join(target_movie_directory,file[:-4],file)
@@ -439,7 +438,7 @@ def register_trial(target_movie_directory,file):
         #%
     except:
         pass # no z-stack
-    os.remove(os.path.join(target_movie_directory,tiff_now))
+    
   #%%
     with open(reg_json_file, "r") as read_file:
         reg_dict = json.load(read_file)
@@ -449,6 +448,7 @@ def register_trial(target_movie_directory,file):
     print('registration speed was {} fps'.format(reg_dict['registration_speed_fps']))
     with open(reg_json_file, "w") as data_file:
         json.dump(reg_dict, data_file, indent=2)
+    os.remove(os.path.join(target_movie_directory,tiff_now))
        #%% 
 def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
     #%%
