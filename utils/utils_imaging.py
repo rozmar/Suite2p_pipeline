@@ -448,7 +448,6 @@ def register_trial(target_movie_directory,file):
     print('registration speed was {} fps'.format(reg_dict['registration_speed_fps']))
     with open(reg_json_file, "w") as data_file:
         json.dump(reg_dict, data_file, indent=2)
-    os.remove(os.path.join(target_movie_directory,tiff_now))
        #%% 
 def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
     #%%
