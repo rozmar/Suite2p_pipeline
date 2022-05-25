@@ -72,10 +72,13 @@ for setup in setups:
             z_stacks = subject_metadata.loc[subject_metadata['FOV']==FOV,'Z-stack']
             sessions = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
             for z_stack_,session in zip(z_stacks,sessions):
-                if '[' in z_stack_:
-                    z_stack_=z_stack_.strip('[]').split(',')
-                else:
-                    z_stack_ = [z_stack_]
+# =============================================================================
+#                 if '[' in z_stack_:
+#                     z_stack_=z_stack_.strip('[]').split(',')
+#                 else:
+#                     z_stack_ = [z_stack_]
+# =============================================================================
+                z_stack_ = [z_stack_]
                 for z_stack in z_stack_:
                     z_stack = z_stack.strip(' ')
                     session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
