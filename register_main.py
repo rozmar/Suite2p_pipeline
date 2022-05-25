@@ -59,6 +59,8 @@ s2p_params = {'max_reg_shift':50, # microns
             'z_stack_name':'',
             'reference_session':''} # folder where the suite2p output is saved
 photostim_name_list = ['slm','stim','file','photo']
+reference_is_previous_session = False
+skip_photostim_trials = True
 acceptable_z_range_for_binned_movie = 1
 trial_number_for_mean_image = 10
 processes_running = 0
@@ -124,8 +126,12 @@ for FOV in FOV_list:
             if os.path.exists(archive_movie_directory):
                 if len(os.listdir(archive_movie_directory))>1:
                     print('{} already registered and saved, skipping')
-                    first_session_of_FOV = False
-                    reference_session_name = session
+                    if first_session_of_FOV:
+                        first_session_of_FOV = False
+                        if not reference_is_previous_session:
+                            reference_session_name = session
+                    if reference_is_previous_session:
+                        reference_session_name = session
                     continue
             # start copying files to local drive
             source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
@@ -188,8 +194,10 @@ for FOV in FOV_list:
                 os.system(bash_command)
                 print(bash_command)
                 print('generating reference frame')
-                reference_session_name = session
+                
                 first_session_of_FOV = False
+                
+                reference_session_name = session
             else: #copy reference frame over from previous session
                 
                 reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,reference_session_name)
@@ -231,6 +239,7 @@ for FOV in FOV_list:
                 copy_finished = file_dict['copy_finished']
                 processes_running = 0
                 movies_registered = 0
+                files_running = []
                 for file in file_dict['copied_files']:
                     if not os.path.exists(os.path.join(temp_movie_directory,'mean_image.npy')):
                         print('no reference image!!')
@@ -258,7 +267,8 @@ for FOV in FOV_list:
                             continue
                     if reg_dict['registration_started']:
                         processes_running+=1
-                        print('{} is running'.format(file))
+                        files_running.append(file)
+                        #print('{} is running'.format(file))
                         continue
     
                     cluster_command_list = ['cd {}'.format(repo_location),
@@ -280,11 +290,20 @@ for FOV in FOV_list:
                         
                     else:
                         break
+                photostim_trial_num = 0
+                for file in file_dict['copied_files']:
+                    for photo_name in photostim_name_list:
+                        if photo_name in file.lower():
+                            photostim_trial_num+=1
+                            continue
+                
                 if movies_registered == len(file_dict['copied_files']):
+                    all_files_registered = True
+                elif skip_photostim_trials and movies_registered == len(file_dict['copied_files'])-photostim_trial_num:
                     all_files_registered = True
                 else:
                     all_files_registered = False
-                print('{} running processes, {} files registered out of {}'.format(processes_running, movies_registered,len(file_dict['copied_files'])))
+                print('{} files registered out of {}, {} running processes : {}'.format( movies_registered,len(file_dict['copied_files']),processes_running, files_running))
                 time.sleep(3)
             #%% concatenating
             concatenated_movie_dir = os.path.join(temp_movie_directory,'_concatenated_movie')
@@ -340,6 +359,11 @@ for FOV in FOV_list:
             os.system(bash_command)
             
             os.system('rm -r {}'.format(temp_movie_directory))
+            
+            if reference_is_previous_session:
+                reference_session_name = session
+            
+            
         
         
 
