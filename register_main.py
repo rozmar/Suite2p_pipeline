@@ -59,7 +59,7 @@ s2p_params = {'max_reg_shift':50, # microns
             'z_stack_name':'',
             'reference_session':''} # folder where the suite2p output is saved
 photostim_name_list = ['slm','stim','file','photo']
-reference_is_previous_session = False
+reference_is_previous_session = True
 skip_photostim_trials = True
 acceptable_z_range_for_binned_movie = 1
 trial_number_for_mean_image = 10
