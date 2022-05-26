@@ -71,33 +71,42 @@ for setup in setups:
         for FOV in FOV_list:
             z_stacks = subject_metadata.loc[subject_metadata['FOV']==FOV,'Z-stack']
             sessions = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
-            for z_stack_,session in zip(z_stacks,sessions):
+            for z_stack_,session_date in zip(z_stacks,sessions):
 # =============================================================================
 #                 if '[' in z_stack_:
 #                     z_stack_=z_stack_.strip('[]').split(',')
 #                 else:
 #                     z_stack_ = [z_stack_]
 # =============================================================================
-                z_stack_ = [z_stack_]
-                for z_stack in z_stack_:
-                    if type(z_stack) is not str:
-                        continue
-                    print([FOV,session,z_stack])
-                    z_stack = z_stack.strip(' ')
-                    session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
-                    if type(z_stack) is not str:
-                        continue
-                    z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
-                    Path(z_stack_dir).mkdir(exist_ok = True, parents = True)
-                    #z_stack_save_name = '{}_{}.tif'.format(session,z_stack)
-                    new_zstack_name = '{}_{}_{}.tif'.format(subject,session_date_dict[session],z_stack[:-4])
-                    if new_zstack_name in os.listdir(z_stack_dir): 
-                        continue #already done
-                    tiff_files_in_raw_folder = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session]))
-                    if z_stack in tiff_files_in_raw_folder:
-                        temp_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(subject,session_date_dict[session],z_stack[:-4]))
-                        Path(temp_dir).mkdir(exist_ok = True, parents = True)
-                        utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session_date_dict[session],z_stack)
-                                                      ,temp_dir)
-                        
-                        shutil.copyfile(os.path.join(temp_dir,new_zstack_name),os.path.join(z_stack_dir,new_zstack_name))
+                session_ = session_date_dict[session_date]
+                
+                #print([session_,len(session)])
+                if type(session_)== str:
+                    session_ = [session_]
+                for session in session_:
+                    z_stack_ = [z_stack_]
+                    for z_stack in z_stack_:
+                        if type(z_stack) is not str:
+                            continue
+                        print([FOV,session,z_stack])
+                        z_stack = z_stack.strip(' ')
+                        session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
+                        if type(z_stack) is not str:
+                            continue
+                        z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
+                        Path(z_stack_dir).mkdir(exist_ok = True, parents = True)
+                        #z_stack_save_name = '{}_{}.tif'.format(session,z_stack)
+                        new_zstack_name = '{}_{}_{}.tif'.format(subject,session,z_stack[:-4])
+                        if new_zstack_name in os.listdir(z_stack_dir): 
+                            continue #already done
+                        try:
+                            tiff_files_in_raw_folder = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject,session))
+                        except:
+                            continue # tiff doesn't exist in this session, it's going to be the other session today
+                        if z_stack in tiff_files_in_raw_folder:
+                            temp_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(subject,session,z_stack[:-4]))
+                            Path(temp_dir).mkdir(exist_ok = True, parents = True)
+                            utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack)
+                                                          ,temp_dir)
+                            
+                            shutil.copyfile(os.path.join(temp_dir,new_zstack_name),os.path.join(z_stack_dir,new_zstack_name))
