@@ -90,7 +90,7 @@ for setup in setups:
                             continue
                         print([FOV,session,z_stack])
                         z_stack = z_stack.strip(' ')
-                        session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
+                        #session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
                         if type(z_stack) is not str:
                             continue
                         z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
