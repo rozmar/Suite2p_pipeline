@@ -80,6 +80,8 @@ for setup in setups:
 # =============================================================================
                 z_stack_ = [z_stack_]
                 for z_stack in z_stack_:
+                    if type(z_stack) is not str:
+                        continue
                     print([FOV,session,z_stack])
                     z_stack = z_stack.strip(' ')
                     session = datetime.datetime.strptime(session,'%Y/%m/%d').date()
