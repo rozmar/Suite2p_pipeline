@@ -9,17 +9,25 @@ import shutil
 from utils import utils_imaging
 import sys
 
-local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
-metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
-raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
-suite2p_dir_base = sys.argv[4]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
 try:
-    subject_ = sys.argv[5]#'BCI_29'
+    local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
+    metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
+    raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
+    suite2p_dir_base = sys.argv[4]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
+    try:
+        subject_ = sys.argv[5]#'BCI_29'
+    except:
+        subject_ = None
+    try:
+        setup = sys.argv[6]#'Bergamo-2P-Photostim'
+    except:
+        setup = None
 except:
+    local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/'
+    metadata_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Metadata/'
+    raw_scanimage_dir_base ='/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
+    suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
     subject_ = None
-try:
-    setup = sys.argv[6]#'Bergamo-2P-Photostim'
-except:
     setup = None
 
 
@@ -69,9 +77,10 @@ for setup in setups:
                 FOV_list.append(FOV)
         
         for FOV in FOV_list:
-            z_stacks = subject_metadata.loc[subject_metadata['FOV']==FOV,'Z-stack']
-            sessions = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
+            z_stacks = subject_metadata.loc[subject_metadata['FOV']==FOV,'Z-stack'].values
+            sessions = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date'].values
             for z_stack_,session_date in zip(z_stacks,sessions):
+                session_date = datetime.datetime.strptime(session_date,'%Y/%m/%d')
 # =============================================================================
 #                 if '[' in z_stack_:
 #                     z_stack_=z_stack_.strip('[]').split(',')
