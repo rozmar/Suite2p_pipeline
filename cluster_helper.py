@@ -1,5 +1,6 @@
 import sys
 from utils import utils_imaging, utils_io
+import numpy as np
 print(sys.argv)
 arguments = sys.argv[2:]
 command = sys.argv[1]
@@ -12,10 +13,20 @@ if command in ['utils_imaging.register_trial',
     for argument in arguments:
         arguments_real.append('"'+argument+'"')
     arguments=arguments_real
-if type(arguments)== list and len(arguments)>1:
-    arguments = ','.join(arguments)
+
+if '[' in arguments_real[-1]:
+    last_arguments = arguments_real[-1].strip('[]').split(',')
+    for last_argument in last_arguments:
+        arguments = ','.join(np.asarray(arguments)[:-1]) + ',' + last_argument
+        print(command)
+        print(arguments)
+        eval('{}({})'.format(command,arguments))
+        
 else:
-    arguments = arguments[0]
-print(command)
-print(arguments)
-eval('{}({})'.format(command,arguments))
+    if type(arguments)== list and len(arguments)>1:
+        arguments = ','.join(arguments)
+    else:
+        arguments = arguments[0]
+    print(command)
+    print(arguments)
+    eval('{}({})'.format(command,arguments))
