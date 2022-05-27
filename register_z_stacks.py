@@ -87,6 +87,8 @@ for setup in setups:
 #                 else:
 #                     z_stack_ = [z_stack_]
 # =============================================================================
+                if session_date not in session_date_dict.keys():
+                    continue
                 session_ = session_date_dict[session_date]
                 
                 #print([session_,len(session)])
