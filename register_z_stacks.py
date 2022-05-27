@@ -47,6 +47,7 @@ for setup in setups:
         except:
             print('no metadata found')
             continue
+        print(subject)
         #%% export Z-stacks
         #decode session dates here
         import datetime
