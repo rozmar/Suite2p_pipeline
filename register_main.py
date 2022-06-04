@@ -279,6 +279,13 @@ for FOV in FOV_list:
                     else:
                         max_process_num_ = max_process_num
                     if processes_running < max_process_num_ :
+                        if skip_photostim_trials:
+                            skip_this_trial = False
+                            for photo_name in photostim_name_list:
+                                if photo_name in file.lower():
+                                    skip_this_trial = True
+                            if skip_this_trial:
+                                continue
                         print('starting {}'.format(file))
                         reg_dict['registration_started'] = True
                         with open(reg_json_file, "w") as data_file:
