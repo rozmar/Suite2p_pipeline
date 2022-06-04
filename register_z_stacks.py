@@ -96,7 +96,10 @@ for setup in setups:
                 if type(session_)== str:
                     session_ = [session_]
                 for session in session_:
-                    z_stack_ = z_stack_.split(',')
+                    if type(session) is str:
+                        z_stack_ = z_stack_.split(',')
+                    else:
+                        z_stack_ = [z_stack_]
                     for z_stack in z_stack_:
                         if type(z_stack) is not str:
                             continue
