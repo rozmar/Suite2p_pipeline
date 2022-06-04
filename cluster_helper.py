@@ -14,15 +14,14 @@ if command in ['utils_imaging.register_trial',
         arguments_real.append('"'+argument+'"')
     arguments=arguments_real
 
-    if '[' in arguments_real[-1]:
-        last_arguments = arguments_real[-1].strip('[]').split(',')
-        for last_argument in last_arguments:
-            arguments = ','.join(np.asarray(arguments)[:-1]) + ',' + last_argument
-            print(command)
-            print(arguments)
-            eval('{}({})'.format(command,arguments))
+if '[' in arguments[-1]:
+    last_arguments = arguments_real[-1].strip('[]').split(',')
+    for last_argument in last_arguments:
+        arguments = ','.join(np.asarray(arguments)[:-1]) + ',' + last_argument
+        print(command)
+        print(arguments)
+        eval('{}({})'.format(command,arguments))
 else:
-        
 
     if type(arguments)== list and len(arguments)>1:
         arguments = ','.join(arguments)
