@@ -7,6 +7,7 @@ from suite2p.detection.detect import detect
 from suite2p.extraction.masks import create_masks
 from suite2p.extraction.extract import extract_traces_from_masks
 import sys
+%matplotlib qt
 try:
     local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
     metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
@@ -37,16 +38,16 @@ except:
     metadata_dir = '/mnt/Data/BCI_metadata/'
     raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
-    subject = 'BCI_26'
+    subject = 'BCI_29'
     setup = 'Bergamo-2P-Photostim'
-    fov = 'FOV_04'
+    fov = 'FOV_02'#'_reference_is_1st_session'#'FOV_03'
     
-    minimum_contrast = 5
+    minimum_contrast = 10
     acceptable_z_range = 1
     
-    
+use_cellpose = False
 photostim_name_list = ['slm','stim','file','photo']
-
+#photostim_name_list = []
 
 FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
 temp_FOV_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(setup,subject,fov))
@@ -90,6 +91,8 @@ for session in sessions:
     zoff_now = []
     framenum_so_far = 0
     mean_int_now = []
+    if 'mean_instensity' not in filelist_dict.keys():
+        filelist_dict['mean_instensity'] = filelist_dict['zoff_list'].copy()
     for framenum, filename,z,intensity in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],filelist_dict['zoff_list'],filelist_dict['mean_instensity']):
         bad_trial = False
         for photo_name in photostim_name_list:
@@ -148,7 +151,7 @@ z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concaten
 #%% quality check -Z position
 median_z_value = np.median(median_z_values)
 
-fig = plt.figure(figsize = [20,20])
+fig = plt.figure(figsize = [20,10])
 ax_z = fig.add_subplot(4,1,1)
 ax_z.set_title('{} --- {}'.format(subject,fov))
 ax_xy = fig.add_subplot(4,1,3,sharex = ax_z)
@@ -179,13 +182,13 @@ for idx_start,idx_end,session in zip(new_session_idx[:-1],new_session_idx[1:],ne
     #ax_z.axvline(idx_end,color ='red')
     ax_z.text(np.mean([idx_start,idx_end]),ax_z.get_ylim()[0]+np.diff(ax_z.get_ylim())[0]/5*4,session,color = 'white',ha='center', va='center')
    
-ax_xy.legend()
+#ax_xy.legend()#bbox_to_anchor = (1.1,1))
 ax_mean_intensity.set_xlabel('Total trial number')
 ax_xy.set_ylabel('XY offsets (pixels)')
 ax_xy.set_ylim([ax_xy.get_ylim()[0],np.diff(ax_xy.get_ylim())+ax_xy.get_ylim()[1]])
 ax_zz.set_ylim([ax_zz.get_ylim()[0]-np.diff(ax_zz.get_ylim()),ax_zz.get_ylim()[1]])
 ax_zz.set_ylabel('Z offset (plane)')
-ax_zz.legend(loc = 'lower right')
+#ax_zz.legend()#(bbox_to_anchor = (1.1,1))
 ax_contrast.legend()
 fig.savefig(os.path.join(FOV_dir,'XYZ_motion.pdf'), format="pdf")
 
@@ -230,6 +233,11 @@ binned_movie_concatenated = np.concatenate(binned_movie_concatenated)
 t_step_size = int(np.ceil(binned_movie_concatenated.shape[0]/max_binned_frame_num))
 binned_movie_concatenated = binned_movie_concatenated[::t_step_size,:,:]
 #%% segment ROIs
+if use_cellpose:
+    ops['anatomical_only'] = True
+    ops['diameter'] = [10,10]
+else:
+    ops['anatomical_only'] = False
 ops['xrange'] = [0, ops['Lx']]
 ops['yrange'] = [0, ops['Ly']]
 ops, stat = detect(ops, classfile=None, mov = binned_movie_concatenated)
@@ -292,7 +300,7 @@ for i,(s,cell_mask,neuropil_mask) in enumerate(zip(stat,cell_masks_,neuropil_mas
         cell_masks_rest.append(cell_mask)
         neuropil_masks_rest.append(neuropil_mask)
         stat_rest.append(s)
-        
+#%
 np.save(os.path.join(FOV_dir, 'stat.npy'), stat_good)
 np.save(os.path.join(FOV_dir, 'cell_masks.npy'), cell_masks)
 np.save(os.path.join(FOV_dir, 'neuropil_masks.npy'), neuropil_masks)
@@ -301,7 +309,7 @@ np.save(os.path.join(FOV_dir, 'stat_rest.npy'), stat_rest)
 np.save(os.path.join(FOV_dir, 'cell_masks_rest.npy'), cell_masks_rest)
 np.save(os.path.join(FOV_dir, 'neuropil_masks_rest.npy'), neuropil_masks_rest)
        
-#%%
+#%
 mean_image = np.mean(binned_movie_concatenated,0)
 max_image = np.max(binned_movie_concatenated,0)
 std_image = np.std(binned_movie_concatenated,0)
@@ -354,21 +362,13 @@ ax_stdimage = fig.add_subplot(2,3,3,sharex =ax_rois,sharey = ax_rois )
 ax_stdimage.set_title('std of image')
 im = ax_stdimage.imshow(std_image)
 im.set_clim(np.percentile(std_image.flatten(),[0,95]))
-fig.savefig(os.path.join(FOV_dir,'ROIs.pdf'), format="pdf")
-fig_roisize.savefig(os.path.join(FOV_dir,'ROI_sizes.pdf'), format="pdf")
+if use_cellpose:
+    fig.savefig(os.path.join(FOV_dir,'ROIs_cellpose.pdf'), format="pdf")
+    fig_roisize.savefig(os.path.join(FOV_dir,'ROI_sizes_cellpose.pdf'), format="pdf")
+else:
+    fig.savefig(os.path.join(FOV_dir,'ROIs.pdf'), format="pdf")
+    fig_roisize.savefig(os.path.join(FOV_dir,'ROI_sizes.pdf'), format="pdf")
 
-#%% extract F and Fneu for each session
-for session in sessions:
-    if 'z-stack' in session.lower() or '.' in session:
-        continue
-    ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
-    ops['batch_size']=250
-    ops['nframes'] = sum(ops['nframes_list'])
-    ops['reg_file'] = os.path.join(FOV_dir,session,'data.bin')
-    print('extracting traces from {}'.format(session))
-    F, Fneu, F_chan2, Fneu_chan2, ops = extract_traces_from_masks(ops, cell_masks, neuropil_masks)
-    np.save(os.path.join(FOV_dir,session,'F.npy'), F)
-    np.save(os.path.join(FOV_dir,session,'Fneu.npy'), Fneu)
 #%% generate MEGATIFF
 
 import cv2
@@ -391,4 +391,37 @@ for i,session in enumerate(sessions):
         imgs_all = np.concatenate([imgs_all,imgs])
     i+=1
 tifffile.imsave(os.path.join(FOV_dir,'meanimages.tiff'),imgs_all)
- 
+
+
+#% generate Session mean images
+imgs_all = []
+import cv2
+import tifffile
+for i,session in enumerate(sessions):
+    if 'z-stack' in session.lower() or '.' in session:
+        continue
+    reference_movie_directory = os.path.join(FOV_dir,session)
+    with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
+        filelist_dict = json.load(f)
+    print(session)
+    #ops = np.load(os.path.join(reference_movie_directory,'ops.npy'),allow_pickle=True).tolist()
+    #z_plane_indices = np.argmax(ops['zcorr_list'],1)
+    z_plane_indices = filelist_dict['zoff_mean_list'] ##HOTFIX - ops and filelist doesn't match ??
+    non_photostim = []
+    for framenum, filename,z in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],filelist_dict['zoff_list']):
+        bad_trial = False
+        for photo_name in photostim_name_list:
+            if photo_name in filename.lower():
+                bad_trial=True
+        if bad_trial:
+            non_photostim.append(False)
+        else:
+            non_photostim.append(True)
+    #print([len(z_plane_indices),len(z_plane_indices_2)])
+    needed_trials = (z_plane_indices == np.median(z_plane_indices))& np.asarray(non_photostim) #)
+    meanimage_all = np.load(os.path.join(reference_movie_directory,'meanImg.npy'))
+    mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
+    texted_image =cv2.putText(img=np.copy(mean_img), text="{}".format(session), org=(20,40),fontFace=3, fontScale=1, color=(255,255,255), thickness=2)
+    imgs_all.append(texted_image)
+tifffile.imsave(os.path.join(FOV_dir,'session_meanimages.tiff'),imgs_all)
+
