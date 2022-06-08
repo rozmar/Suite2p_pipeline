@@ -1,5 +1,6 @@
 #%% generate binned movies
 import os, json
+import scipy
 import numpy as np
 from pathlib import Path
 import  matplotlib.pyplot as plt
@@ -28,7 +29,7 @@ try:
     try:
         minimum_contrast = int(sys.argv[8])#'Bergamo-2P-Photostim'
     except:
-        minimum_contrast = 5
+        minimum_contrast = None
     try:
         acceptable_z_range = int(sys.argv[9])#'Bergamo-2P-Photostim'
     except:
@@ -38,11 +39,11 @@ except:
     metadata_dir = '/mnt/Data/BCI_metadata/'
     raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
-    subject = 'BCI_29'
+    subject = 'BCI_26'
     setup = 'Bergamo-2P-Photostim'
-    fov = 'FOV_02'#'_reference_is_1st_session'#'FOV_03'
+    fov = 'FOV_06'#'_reference_is_1st_session'#'FOV_03'
     
-    minimum_contrast = 10
+    minimum_contrast = None
     acceptable_z_range = 1
     
 use_cellpose = False
@@ -148,6 +149,9 @@ zcorr_list_concatenated_norm = (zcorr_list_concatenated - min_zcorr_vals[:,np.ne
 hw = zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) - np.argmax(zcorr_list_concatenated_norm>.5,1)
 z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) + np.argmax(zcorr_list_concatenated_norm>.5,1))/2
 
+if minimum_contrast is None:
+    minimum_contrast = np.percentile(contrast,90)/2
+
 #%% quality check -Z position
 median_z_value = np.median(median_z_values)
 
@@ -176,6 +180,7 @@ ax_zz.plot([x[0],x[-1]],[median_z_value+acceptable_z_range]*2,'r--',label = 'Acc
 
 
 ax_contrast.plot(contrast,'k-',label = 'Contrast in Z location')
+
 ax_contrast.plot([x[0],x[-1]],[minimum_contrast]*2,'r--')
 for idx_start,idx_end,session in zip(new_session_idx[:-1],new_session_idx[1:],new_session_names):
     ax_z.axvline(idx_start,color ='red')
@@ -191,6 +196,8 @@ ax_zz.set_ylabel('Z offset (plane)')
 #ax_zz.legend()#(bbox_to_anchor = (1.1,1))
 ax_contrast.legend()
 fig.savefig(os.path.join(FOV_dir,'XYZ_motion.pdf'), format="pdf")
+
+
 
 #%% concatenate binned movie
 max_binned_frame_num = 7000#after this it fills up the 120GB RAM
@@ -302,6 +309,12 @@ for i,(s,cell_mask,neuropil_mask) in enumerate(zip(stat,cell_masks_,neuropil_mas
         stat_rest.append(s)
 #%
 np.save(os.path.join(FOV_dir, 'stat.npy'), stat_good)
+scipy.io.savemat(
+    file_name=os.path.join(FOV_dir, 'stat.mat'),
+    mdict={
+        'stat': stat_good
+    }
+)
 np.save(os.path.join(FOV_dir, 'cell_masks.npy'), cell_masks)
 np.save(os.path.join(FOV_dir, 'neuropil_masks.npy'), neuropil_masks)
  
