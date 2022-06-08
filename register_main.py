@@ -156,7 +156,7 @@ for FOV in FOV_list:
                     Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
                     shutil.copyfile(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks',zstackname),
                                      os.path.join(temp_movie_directory,zstackname[:-4],zstackname))
-                    continue
+                    break
                 else:
                     zstackname = None
             s2p_params['z_stack_name'] =zstackname
