@@ -150,7 +150,7 @@ for FOV in FOV_list:
             os.system(bash_command)
             
             #% select the first Z-stack in the FOV directory
-            available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))[::-1]
+            available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
             for zstackname in available_z_stacks:
                 if '.tif' in zstackname:
                     Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
