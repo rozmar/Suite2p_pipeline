@@ -62,6 +62,7 @@ photostim_name_list = ['slm','stim','file','photo']
 reference_is_previous_session = True
 skip_photostim_trials = True
 acceptable_z_range_for_binned_movie = 1
+minimum_contrast_for_binned_movie = 5
 trial_number_for_mean_image = 10
 processes_running = 0
 
@@ -149,7 +150,7 @@ for FOV in FOV_list:
             os.system(bash_command)
             
             #% select the first Z-stack in the FOV directory
-            available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
+            available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))[::-1]
             for zstackname in available_z_stacks:
                 if '.tif' in zstackname:
                     Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
@@ -322,6 +323,9 @@ for FOV in FOV_list:
             
             ops = np.load(os.path.join(concatenated_movie_dir,'ops.npy'),allow_pickle=True).tolist()
             z_plane_indices = np.argmax(ops['zcorr_list'],1)
+            max_zcorr_vals = np.max(ops['zcorr_list'],1)
+            min_zcorr_vals = np.min(ops['zcorr_list'],1)
+            contrast = max_zcorr_vals/min_zcorr_vals
             needed_z = np.median(z_plane_indices)
             needed_trials = z_plane_indices == needed_z #
             with open(os.path.join(concatenated_movie_dir,'filelist.json')) as f:
@@ -333,12 +337,12 @@ for FOV in FOV_list:
             badframes = np.asarray(np.zeros(ops['nframes']),bool)
             frames_so_far = 0
             
-            for framenum, filename,z in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],z_plane_indices):
+            for framenum, filename,z,contrast_now in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],z_plane_indices,contrast):
                 bad_trial = False
                 for photo_name in photostim_name_list:
                     if photo_name in filename.lower():
                         bad_trial=True
-                if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie:
+                if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie or contrast_now<minimum_contrast_for_binned_movie:
                     bad_trial=True
                 if bad_trial:
                     badframes[frames_so_far:frames_so_far+framenum] = True
