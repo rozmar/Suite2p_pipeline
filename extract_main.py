@@ -9,20 +9,21 @@ try:
     metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
     raw_scanimage_dir_base = sys.argv[3]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
     suite2p_dir_base = sys.argv[4]#'/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
+    bpod_path = sys.argv[5]
     try:
-        subject = sys.argv[5]#'BCI_29'
+        subject = sys.argv[6]#'BCI_29'
     except:
         subject = None
     try:
-        setup = sys.argv[6]#'Bergamo-2P-Photostim'
+        setup = sys.argv[7]#'Bergamo-2P-Photostim'
     except:
         setup = None
     try:
-        fov =sys.argv[7]#'Bergamo-2P-Photostim'
+        fov =sys.argv[8]#'Bergamo-2P-Photostim'
     except:
         fov = None
     try:
-        overwrite ='true' in sys.argv[8].lower() #'Bergamo-2P-Photostim'
+        overwrite ='true' in sys.argv[9].lower() #'Bergamo-2P-Photostim'
     except:
         overwrite = False
 
@@ -31,6 +32,7 @@ except:
     metadata_dir = '/mnt/Data/BCI_metadata/'
     raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
+    bpod_path = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Behavior/BCI_exported/'
     subject = 'BCI_26'
     setup = 'Bergamo-2P-Photostim'
     fov = 'FOV_06'
@@ -204,7 +206,7 @@ for session in sessions:
         plot_stuff = True
         stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
         photon_counts_dict = {}
-        bpod_file = os.path.join('/home/rozmar/Network/GoogleServices/BCI_data/Data/Behavior/BCI_exported/Bergamo-2P-Photostim/{}/{}-bpod_zaber.npy'.format(subject,session))
+        bpod_file = os.path.join(bpod_path,setup,'{}/{}-bpod_zaber.npy'.format(subject,session))
         bpod_data=np.load(bpod_file,allow_pickle=True).tolist()
         tiff_idx = 0 #np.argmax((np.asarray(bpod_data['scanimage_file_names'])=='no movie for this trial')==False)
         while bpod_data['scanimage_file_names'][tiff_idx] =='no movie for this trial':
