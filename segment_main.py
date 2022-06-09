@@ -10,7 +10,10 @@ from suite2p.extraction.extract import extract_traces_from_masks
 from suite2p import registration
 import tifffile
 import sys
-%matplotlib qt
+try:
+    %matplotlib qt
+except:
+    pass
 try:
     local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
     metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
@@ -409,7 +412,7 @@ for i,session in enumerate(sessions):
     else:
         imgs_all = np.concatenate([imgs_all,imgs])
     i+=1
-    #%
+    #%%
 tifffile.imsave(os.path.join(FOV_dir,'meanimages.tiff'),imgs_all)
 meanImages = imgs_all.copy()
 
