@@ -7,6 +7,8 @@ import  matplotlib.pyplot as plt
 from suite2p.detection.detect import detect
 from suite2p.extraction.masks import create_masks
 from suite2p.extraction.extract import extract_traces_from_masks
+from suite2p import registration
+import tifffile
 import sys
 %matplotlib qt
 try:
@@ -39,15 +41,16 @@ except:
     metadata_dir = '/mnt/Data/BCI_metadata/'
     raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/'
     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
-    subject = 'BCI_26'
+    subject = 'BCI_29'
     setup = 'Bergamo-2P-Photostim'
-    fov = 'FOV_06'#'_reference_is_1st_session'#'FOV_03'
+    fov = 'FOV_03_reference_is_1st_session'#'FOV_03'
     
     minimum_contrast = None
     acceptable_z_range = 1
     
 use_cellpose = False
 photostim_name_list = ['slm','stim','file','photo']
+blacklist_for_binned_movie = {'BCI_26':['060622']}
 #photostim_name_list = []
 
 FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
@@ -211,7 +214,10 @@ for session in sessions:
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         ops_loaded = True
     new_session_idx.append(trial_i)
-    
+    if subject in blacklist_for_binned_movie.keys():
+        if session in blacklist_for_binned_movie[subject]:
+            print('session {} blacklisted, skipping from binned movie'.format(session))
+            continue
 # =============================================================================
 #     with open(os.path.join(FOV_dir,session,'filelist.json')) as f:
 #         filelist_dict = json.load(f)
@@ -403,11 +409,13 @@ for i,session in enumerate(sessions):
     else:
         imgs_all = np.concatenate([imgs_all,imgs])
     i+=1
+    #%
 tifffile.imsave(os.path.join(FOV_dir,'meanimages.tiff'),imgs_all)
+meanImages = imgs_all.copy()
 
-
-#% generate Session mean images
+#%% generate Session mean images
 imgs_all = []
+meanImages = imgs_all.copy()
 import cv2
 import tifffile
 for i,session in enumerate(sessions):
@@ -437,4 +445,42 @@ for i,session in enumerate(sessions):
     texted_image =cv2.putText(img=np.copy(mean_img), text="{}".format(session), org=(20,40),fontFace=3, fontScale=1, color=(255,255,255), thickness=2)
     imgs_all.append(texted_image)
 tifffile.imsave(os.path.join(FOV_dir,'session_meanimages.tiff'),imgs_all)
+#%% register each session to every z-stack
+zstack_names = os.listdir(os.path.join(FOV_dir,'Z-stacks'))
+stacks_dict = {}
+for zstack_name in np.sort(zstack_names):
+    if '.tif' in zstack_name:
+        stack = tifffile.imread(os.path.join(FOV_dir,'Z-stacks',zstack_name))
+        stacks_dict[zstack_name[:-4]]= stack    
 
+
+ops['maxregshift'] = .3
+session_zcorrs = []
+stack_zcorrs = []
+for stack in stacks_dict.keys():
+    ops_orig, zcorr_orig = registration.zalign.compute_zpos_single_frame(stacks_dict[stack], np.asarray(imgs_all), ops)
+    session_zcorrs.append(zcorr_orig)
+    stack_zcorr_now = []
+    for stack_ in stacks_dict.keys():
+        ops_orig, zcorr_orig = registration.zalign.compute_zpos_single_frame(stacks_dict[stack], stacks_dict[stack_], ops)
+        stack_zcorr_now.append(zcorr_orig)
+    stack_zcorrs.append(stack_zcorr_now)
+    #%%
+sessions_real = []       
+for i,session in enumerate(sessions):
+    if 'z-stack' in session.lower() or '.' in session:
+        continue
+    sessions_real.append(session)
+fig = plt.figure(figsize = [20,20])
+for i,(stack,zcorr,stack_zcorr) in enumerate(zip(stacks_dict.keys(),session_zcorrs,stack_zcorrs)):
+    ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+1)
+    ax_now.imshow(zcorr,aspect = 'auto')
+    ax_now.set_title(stack)
+    ax_now.set_xticks(np.arange(zcorr.shape[1]))
+    ax_now.set_xticklabels(sessions_real)
+    for i_zstack,(stack_image,stack_2_name) in enumerate(zip(stack_zcorr,stacks_dict.keys())):
+        ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+i_zstack+2)
+        ax_now.imshow(stack_image,aspect = 'auto')
+        ax_now.set_xlabel(stack_2_name)
+        ax_now.set_ylabel(stack)
+fig.savefig(os.path.join(FOV_dir,'Z-positions.pdf'), format="pdf")   
