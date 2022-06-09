@@ -376,7 +376,7 @@ def register_trial(target_movie_directory,file):
     ops['tau'] = 2
     ops['maxregshift'] =  s2p_params['max_reg_shift']/np.max(FOV)
     ops['nimg_init'] = 500
-    ops['nonrigid'] = True
+    ops['nonrigid'] = False
     ops['maxregshiftNR'] = int(s2p_params['max_reg_shift_NR']/np.min(pixelsize)) # this one is in pixels...
 # =============================================================================
 #     block_size_optimal = np.round((s2p_params['block_size']/np.min(pixelsize)))
