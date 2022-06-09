@@ -10,10 +10,12 @@ from suite2p.extraction.extract import extract_traces_from_masks
 from suite2p import registration
 import tifffile
 import sys
-try:
-    %matplotlib qt
-except:
-    pass
+# =============================================================================
+# try:
+#     %matplotlib qt
+# except:
+#     pass
+# =============================================================================
 try:
     local_temp_dir = sys.argv[1]#'/mnt/HDDS/Fast_disk_0/temp/'
     metadata_dir = sys.argv[2]#'/mnt/Data/BCI_metadata/'
