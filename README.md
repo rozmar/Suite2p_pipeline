@@ -21,7 +21,17 @@ git clone https://github.com/rozmar/Suite2p_pipeline.git
 cd Suite2p_pipeline 
 
 ```
+## Initialize an already installed instance
+```
+cd ~
+mkdir bucket
+fusermount -u ./bucket
+gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./bucket
+cd Scripts/Suite2p_pipeline/
+git pull origin main
+conda activate bci_with_suite2p
 
+```
 ## Register Z-stacks
 
 ```
