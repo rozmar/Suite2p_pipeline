@@ -62,7 +62,7 @@ photostim_name_list = ['slm','stim','file','photo']
 reference_is_previous_session = False
 skip_photostim_trials = True
 acceptable_z_range_for_binned_movie = 1
-minimum_contrast_for_binned_movie = 5
+minimum_contrast_for_binned_movie = None
 trial_number_for_mean_image = 10
 processes_running = 0
 
@@ -337,13 +337,16 @@ for FOV in FOV_list:
             bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(ops['tau'] * ops['fs'])))
             badframes = np.asarray(np.zeros(ops['nframes']),bool)
             frames_so_far = 0
-            
+            if minimum_contrast_for_binned_movie is None:
+                minimum_contrast= np.percentile(contrast,90)/2
+            else:
+                minimum_contrast=minimum_contrast_for_binned_movie
             for framenum, filename,z,contrast_now in zip(filelist_dict['frame_num_list'],filelist_dict['file_name_list'],z_plane_indices,contrast):
                 bad_trial = False
                 for photo_name in photostim_name_list:
                     if photo_name in filename.lower():
                         bad_trial=True
-                if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie or contrast_now<minimum_contrast_for_binned_movie:
+                if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie or contrast_now<minimum_contrast:
                     bad_trial=True
                 if bad_trial:
                     badframes[frames_so_far:frames_so_far+framenum] = True
