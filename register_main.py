@@ -166,41 +166,14 @@ for FOV in FOV_list:
                 json.dump(s2p_params, data_file, indent=2)
             #% 
             if first_session_of_FOV: # first session needs a mean image to be generated
-                reference_movie_dir = os.path.join(temp_movie_directory,'_reference_image')
-                Path(reference_movie_dir).mkdir(parents = True,exist_ok = True)
-                os.chmod(reference_movie_dir, 0o777)
-                reference_movie_json = os.path.join(temp_movie_directory,'_reference_image','refimage_progress.json')
-                refimage_dict = {'ref_image_started':True,
-                                 'ref_image_finished':False,
-                                 'ref_image_started_time': str(time.time())}
-                with open(reference_movie_json, "w") as data_file:
-                    json.dump(refimage_dict, data_file, indent=2)
-                trial_num_to_use = int(trial_number_for_mean_image)
-                #%
-                try:
-                    file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
-                except:
-                    file_dict = {'copied_files':[]}
-                while len(file_dict['copied_files'])<trial_num_to_use+1:
-                    
-                    print('waiting for {} trials to be available for generating reference frame -- already got {}'.format(trial_num_to_use,file_dict['copied_files']))
-                    time.sleep(3)
-                    try:
-                        file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
-                    except:
-                        file_dict = {'copied_files':[]}
-                cluster_command_list = ['cd {}'.format(repo_location),
-                                        'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
-                bash_command = r" && ".join(cluster_command_list)+ r" &"
-                os.system(bash_command)
-                print(bash_command)
-                print('generating reference frame')
+                
                 
                 first_session_of_FOV = False
                 
                 reference_session_name = session
             else: #copy reference frame over from previous session
-                
+                reference_movie_dir = os.path.join(temp_movie_directory,'_reference_image')
+                Path(reference_movie_dir).mkdir(parents = True,exist_ok = True)
                 reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,reference_session_name)
             
                 with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
@@ -215,7 +188,7 @@ for FOV in FOV_list:
                 meanimage_dict = {'refImg':mean_img,
                                   'movies_used':np.asarray(filelist_dict_['file_name_list'])[needed_trials],
                                   'reference_session':reference_session_name}
-                np.save(os.path.join(temp_movie_directory,'mean_image.npy'),meanimage_dict) 
+                np.save(os.path.join(reference_movie_dir,'mean_image.npy'),meanimage_dict) 
                 del meanimage_all, mean_img
                 
                 s2p_params['reference_session'] =reference_session_name
@@ -224,7 +197,35 @@ for FOV in FOV_list:
                 with open(sp2_params_file, "w") as data_file:
                     json.dump(s2p_params, data_file, indent=2)
                     
-    
+            reference_movie_dir = os.path.join(temp_movie_directory,'_reference_image')
+            Path(reference_movie_dir).mkdir(parents = True,exist_ok = True)
+            os.chmod(reference_movie_dir, 0o777)
+            reference_movie_json = os.path.join(temp_movie_directory,'_reference_image','refimage_progress.json')
+            refimage_dict = {'ref_image_started':True,
+                             'ref_image_finished':False,
+                             'ref_image_started_time': str(time.time())}
+            with open(reference_movie_json, "w") as data_file:
+                json.dump(refimage_dict, data_file, indent=2)
+            trial_num_to_use = int(trial_number_for_mean_image)
+            #%
+            try:
+                file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+            except:
+                file_dict = {'copied_files':[]}
+            while len(file_dict['copied_files'])<trial_num_to_use+1:
+                
+                print('waiting for {} trials to be available for generating reference frame -- already got {}'.format(trial_num_to_use,file_dict['copied_files']))
+                time.sleep(3)
+                try:
+                    file_dict = np.load(os.path.join(temp_movie_directory,'copy_data.npy'),allow_pickle = True).tolist()
+                except:
+                    file_dict = {'copied_files':[]}
+            cluster_command_list = ['cd {}'.format(repo_location),
+                                    'python cluster_helper.py {} "\'{}\'" {}'.format('utils_imaging.generate_mean_image_from_trials',temp_movie_directory,trial_num_to_use)]
+            bash_command = r" && ".join(cluster_command_list)+ r" &"
+            os.system(bash_command)
+            print(bash_command)
+            print('generating reference frame')
             #%% registering
             copy_finished = False
             all_files_registered = False

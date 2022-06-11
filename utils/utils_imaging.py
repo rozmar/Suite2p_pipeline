@@ -355,8 +355,11 @@ def register_trial(target_movie_directory,file):
     movie_dims = metadata['roi_metadata'][0]['scanfields']['pixelResolutionXY']
     zoomfactor = float(metadata['metadata']['hRoiManager']['scanZoomFactor'])
     
-    XFOV = 1500*np.exp(-zoomfactor/11.5)+88 # HOTFIX for 16x objective
-    pixelsize_real =  XFOV/movie_dims[0]
+# =============================================================================
+#     XFOV = 1500*np.exp(-zoomfactor/11.5)+88 # HOTFIX for 16x objective
+#     pixelsize_real =  XFOV/movie_dims[0]
+# =============================================================================
+    pixelsize_real = 800/(0.54972*zoomfactor+0.001724)/movie_dims[0] # bergamo 2p scope
     print('pixel size changed from {} to {} '.format(pixelsize,pixelsize_real))
     pixelsize = pixelsize_real
     
@@ -376,7 +379,7 @@ def register_trial(target_movie_directory,file):
     ops['tau'] = 2
     ops['maxregshift'] =  s2p_params['max_reg_shift']/np.max(FOV)
     ops['nimg_init'] = 500
-    ops['nonrigid'] = False
+    ops['nonrigid'] = True
     ops['maxregshiftNR'] = int(s2p_params['max_reg_shift_NR']/np.min(pixelsize)) # this one is in pixels...
 # =============================================================================
 #     block_size_optimal = np.round((s2p_params['block_size']/np.min(pixelsize)))
@@ -384,7 +387,7 @@ def register_trial(target_movie_directory,file):
 #     block_size = int(potential_bases[np.argmin(np.abs(potential_bases-block_size_optimal))])
 # =============================================================================
     ops['block_size'] = [128,128]#np.ones(2,int)*block_size
-    ops['smooth_sigma'] = s2p_params['smooth_sigma']/np.min(pixelsize_real)#pixelsize_real #ops['diameter']/10 #
+    ops['smooth_sigma'] = s2p_params['smooth_sigma']/np.min(pixelsize)#pixelsize_real #ops['diameter']/10 #
     #ops['smooth_sigma_time'] = s2p_params['smooth_sigma_time']*float(metadata['frame_rate']) # ops['tau']*ops['fs']#
     ops['data_path'] = target_movie_directory
     ops['tiff_list'] = [tiff_now]
@@ -533,6 +536,21 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         refImg = registration.register.compute_reference(ops, frames)
         print('Reference frame, %0.2f sec.'%(time.time()-t0))
     ops['refImg'] = refImg
+    
+    if 'mean_image.npy' in os.listdir(os.path.join(target_movie_directory,'_reference_image')):# there is a previous reference image
+        # perform rigid registration to this reference image
+        meanimage_dict_old = np.load(os.path.join(target_movie_directory,'_reference_image','mean_image.npy'),allow_pickle = True).tolist()
+        refImg_old = meanimage_dict_old['refImg']
+        maskMul, maskOffset = rigid.compute_masks(refImg=refImg_old,
+                                                  maskSlope=1)
+        cfRefImg = rigid.phasecorr_reference(refImg=refImg_old,
+                                             smooth_sigma=1)
+        ymax, xmax, cmax = rigid.phasecorr(data=np.complex64(np.float32(np.asarray([refImg]*2)) * maskMul + maskOffset),
+                                           cfRefImg=cfRefImg,
+                                           maxregshift=50,
+                                           smooth_sigma_time=0)
+        refImg = rigid.shift_frame(frame=refImg, dy=ymax[0], dx=xmax[0])
+    
     meanimage_dict = {'refImg':refImg,
                       'movies_used':filename_list}
     np.save(os.path.join(target_movie_directory,'mean_image.npy'),meanimage_dict)    
