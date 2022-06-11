@@ -550,6 +550,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
                                            maxregshift=.3,
                                            smooth_sigma_time=0)
         refImg = rigid.shift_frame(frame=refImg, dy=ymax[0], dx=xmax[0])
+        print('reference image corrected to previous session by {} and {} pixels'.format(ymax[0],xmax[0]))
     
     meanimage_dict = {'refImg':refImg,
                       'movies_used':filename_list}
