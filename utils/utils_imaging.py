@@ -10,6 +10,7 @@ from scipy.ndimage import filters
 import tifffile
 import re
 import shutil
+import cv2
 try:
     from suite2p import default_ops as s2p_default_ops
     from suite2p import run_s2p, io,registration, run_plane
@@ -283,8 +284,7 @@ def register_zstack(source_tiff,target_movie_directory):
     pixelsize = metadata['roi_metadata'][0]['scanfields']['sizeXY']
     movie_dims = metadata['roi_metadata'][0]['scanfields']['pixelResolutionXY']
     zoomfactor = float(metadata['metadata']['hRoiManager']['scanZoomFactor'])
-    XFOV = 1500*np.exp(-zoomfactor/11.5)+88 # HOTFIX for 16x objective
-    pixelsize_real =  XFOV/movie_dims[0]
+    pixelsize_real = 800/(0.54972*zoomfactor+0.001724)/movie_dims[0] # bergamo 2p scope
     print('pixel size changed from {} to {} '.format(pixelsize,pixelsize_real))
     pixelsize = pixelsize_real
     
@@ -406,7 +406,9 @@ def register_trial(target_movie_directory,file):
         data.shape
         trace = np.mean(np.mean(data,1),1)
         ops['badframes']  = trace>1.5*np.median(trace)
-        
+    if 'rotation_matrix' in meanimage_dict.keys():
+        ops['rotation_matrix'] = meanimage_dict['rotation_matrix']
+    
     ops = run_s2p(ops)
     os.remove(tiff_now) # delete the raw tiff file
     #%%
@@ -464,8 +466,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
     movie_dims = metadata['roi_metadata'][0]['scanfields']['pixelResolutionXY']
     zoomfactor = float(metadata['metadata']['hRoiManager']['scanZoomFactor'])
     
-    XFOV = 1500*np.exp(-zoomfactor/11.5)+88 # HOTFIX for 16x objective
-    pixelsize_real =  XFOV/movie_dims[0]
+    pixelsize_real = 800/(0.54972*zoomfactor+0.001724)/movie_dims[0] # bergamo 2p scope
     print('pixel size changed from {} to {} '.format(pixelsize,pixelsize_real))
     pixelsize = pixelsize_real
     
@@ -538,9 +539,56 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
     ops['refImg'] = refImg
     
     if 'mean_image.npy' in os.listdir(os.path.join(target_movie_directory,'_reference_image')):# there is a previous reference image
-        # perform rigid registration to this reference image
         meanimage_dict_old = np.load(os.path.join(target_movie_directory,'_reference_image','mean_image.npy'),allow_pickle = True).tolist()
         refImg_old = meanimage_dict_old['refImg']
+        # check if there is rotation
+        #%%
+        stack = tifffile.imread('/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim/BCI_29/FOV_03/session_meanimages.tiff')
+        refImg = np.asarray(stack[3,:,:],np.float32)
+        refImg_old = np.asarray(stack[0,:,:],np.float32)
+        
+        
+        sz = refImg.shape
+
+        # Define the motion model
+        warp_mode = cv2.MOTION_EUCLIDEAN#MOTION_AFFINE#MOTION_EUCLIDEAN
+        
+        # Define 2x3 or 3x3 matrices and initialize the matrix to identity
+        warp_matrix = np.eye(2, 3, dtype=np.float32)
+        
+        # Specify the number of iterations.
+        number_of_iterations = 1000;
+        
+        # Specify the threshold of the increment
+        # in the correlation coefficient between two iterations
+        termination_eps = 1e-10;
+        
+        # Define termination criteria
+        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, number_of_iterations,  termination_eps)
+        
+        # Run the ECC algorithm. The results are stored in warp_matrix.
+        print('calculating rotation')
+        (cc, warp_matrix) = cv2.findTransformECC(refImg_old,refImg,warp_matrix, warp_mode, criteria)
+        
+        refImg = cv2.warpAffine(refImg, warp_matrix, (sz[1],sz[0]), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP);
+        
+        
+       #%%
+        sx = np.sqrt(warp_matrix[0,0]**2+warp_matrix[1,0]**2) 
+        sy = np.sqrt(warp_matrix[0,1]**2+warp_matrix[1,1]**2)
+        rotation = np.mean(np.asarray([np.arccos(warp_matrix[0,0]/sx),np.arcsin(warp_matrix[1,0]/sx),-1*np.arcsin(warp_matrix[0,1]/sy),np.arccos(warp_matrix[1,1]/sy)]))
+        rotation_matrix = np.zeros_like(warp_matrix)
+        rotation_matrix[0,0]=warp_matrix[0,0]/sx
+        rotation_matrix[1,0]=warp_matrix[1,0]/sx
+        rotation_matrix[0,1]=warp_matrix[0,1]/sy
+        rotation_matrix[1,1]=warp_matrix[1,1]/sy
+        rotation_deg = rotation*180*np.pi
+        print('reference image is rotated by {} degrees'.format(rotation_deg))
+
+        
+        
+        # perform rigid registration to this reference image
+        
         maskMul, maskOffset = rigid.compute_masks(refImg=refImg_old,
                                                   maskSlope=1)
         cfRefImg = rigid.phasecorr_reference(refImg=refImg_old,
@@ -553,6 +601,8 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         print('reference image corrected to previous session by {} and {} pixels'.format(ymax[0],xmax[0]))
     
     meanimage_dict = {'refImg':refImg,
+                      'rotation_matrix':rotation_matrix,
+                      'rotation_deg':rotation_deg,
                       'movies_used':filename_list}
     np.save(os.path.join(target_movie_directory,'mean_image.npy'),meanimage_dict)    
     
