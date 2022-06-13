@@ -543,10 +543,6 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         refImg_old = meanimage_dict_old['refImg']
         # check if there is rotation
         #%%
-        stack = tifffile.imread('/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim/BCI_29/FOV_03/session_meanimages.tiff')
-        refImg = np.asarray(stack[3,:,:],np.float32)
-        refImg_old = np.asarray(stack[0,:,:],np.float32)
-        
         
         sz = refImg.shape
 
@@ -568,7 +564,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         
         # Run the ECC algorithm. The results are stored in warp_matrix.
         print('calculating rotation')
-        (cc, warp_matrix) = cv2.findTransformECC(refImg_old,refImg,warp_matrix, warp_mode, criteria)
+        (cc, warp_matrix) = cv2.findTransformECC(np.asarray(refImg_old,np.float32),np.asarray(refImg,np.float32),warp_matrix, warp_mode, criteria)
         
         refImg = cv2.warpAffine(refImg, warp_matrix, (sz[1],sz[0]), flags=cv2.INTER_LINEAR + cv2.WARP_INVERSE_MAP);
         
