@@ -53,5 +53,5 @@ python ./segment_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /hom
 
 ## Extract traces
 ```
-python ./extract_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim FOV_03
+python ./extract_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ /home/jupyter/bucket/Data/Behavior/BCI_exported/  BCI_29 Bergamo-2P-Photostim FOV_03 true
 ```
