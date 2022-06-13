@@ -594,7 +594,41 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
                                            maxregshift=.3,
                                            smooth_sigma_time=0)
         refImg = rigid.shift_frame(frame=refImg, dy=ymax[0], dx=xmax[0])
+        
+        
+        
         print('reference image corrected to previous session by {} and {} pixels'.format(ymax[0],xmax[0]))
+        
+        # perform non-rigid registration
+        
+        ops['yblock'], ops['xblock'], ops['nblocks'], ops['block_size'], ops['NRsm'] = registration.register.nonrigid.make_blocks(Ly=ops['Ly'], Lx=ops['Lx'], block_size=[128,128])#ops['block_size'])
+        ops['nframes'] = 1 
+        ops['batch_size']=2 
+        maskMulNR, maskOffsetNR, cfRefImgNR = registration.register.nonrigid.phasecorr_reference(refImg0=refImg_old,
+                                                                                                 maskSlope=ops['spatial_taper'] if ops['1Preg'] else 3 * ops['smooth_sigma'], # slope of taper mask at the edges
+                                                                                                 smooth_sigma=ops['smooth_sigma'],
+                                                                                                 yblock=ops['yblock'],
+                                                                                                 xblock=ops['xblock'])
+        ymax1, xmax1, cmax1 = registration.register.nonrigid.phasecorr(data=np.complex64(np.float32(np.array([refImg]*2))),
+                                                                                                  maskMul=maskMulNR.squeeze(),
+                                                                                                  maskOffset=maskOffsetNR.squeeze(),
+                                                                                                  cfRefImg=cfRefImgNR.squeeze(),
+                                                                                                  snr_thresh=ops['snr_thresh'],
+                                                                                                  NRsm=ops['NRsm'],
+                                                                                                  xblock=ops['xblock'],
+                                                                                                  yblock=ops['yblock'],
+                                                                                                  maxregshiftNR=ops['maxregshiftNR'])
+        
+        
+        refImg = registration.register.nonrigid.transform_data(data=np.float32(np.stack([refImg,refImg])),
+                                                                      nblocks=ops['nblocks'],
+                                                                      xblock=ops['xblock'],
+                                                                      yblock=ops['yblock'],
+                                                                      ymax1=ymax1,
+                                                                      xmax1=xmax1,
+                                                                      )
+        refImg = refImg[0,:,:].squeeze()
+        
     
     meanimage_dict = {'refImg':refImg,
                       'rotation_matrix':rotation_matrix,
