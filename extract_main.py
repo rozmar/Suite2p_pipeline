@@ -279,9 +279,9 @@ for session in sessions:
             ax_dprime.set_xlabel('d-prime for 100% dF/F change')
             ax_dprime.set_ylabel('# of ROIs')
             fig.savefig(os.path.join(FOV_dir,session,'photon_counts.pdf'), format="pdf")
-        np.save(os.path.join(FOV_dir,session,'neuropil_contribution.npy'), neuropil_dict,allow_pickle=True)
+        np.save(os.path.join(FOV_dir,session,'photon_counts.npy'), photon_counts_dict,allow_pickle=True)
     else:
-        neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution.npy'),allow_pickle=True).tolist()
+        photon_counts_dict = np.load(os.path.join(FOV_dir,session,'photon_counts.npy'),allow_pickle=True).tolist()
 # =============================================================================
 #     if 'dFF_noise.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
 #         dfFnoise = np.zeros_like(F)
