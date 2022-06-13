@@ -211,7 +211,7 @@ for session in sessions:
         tiff_idx = 0 #np.argmax((np.asarray(bpod_data['scanimage_file_names'])=='no movie for this trial')==False)
         while bpod_data['scanimage_file_names'][tiff_idx] =='no movie for this trial':
             tiff_idx +=1
-        tiff_idx +=1
+        
         tiff_header = bpod_data['scanimage_tiff_headers'][tiff_idx][0]
         mask = np.asarray(tiff_header['metadata']['hScan2D']['mask'].strip('[]').split(';'),int)
         dwelltime = 1000000/float(tiff_header['metadata']['hScan2D']['sampleRate'])
