@@ -27,7 +27,10 @@ cd ~
 mkdir bucket
 fusermount -u ./bucket
 gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./bucket
-cd Scripts/Suite2p_pipeline/
+cd Scripts/suite2p/
+git pull origin main
+cd ..
+cd Suite2p_pipeline
 git pull origin main
 conda activate bci_with_suite2p
 
