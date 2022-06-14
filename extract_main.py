@@ -240,7 +240,7 @@ for session in sessions:
         
         
         n_noise_photons_per_roi = np.asarray(samples_averaged)*(p[1]/p[0])/intensity_per_photon #+p[1]/p[0] - F0_mean is not corrected with the offset
-        dff_1_snr = n_photons_per_roi/(np.sqrt((n_noise_photons_per_roi*3+n_photons_per_roi*2)/2))
+        dff_1_snr = n_photons_per_roi/(np.sqrt(np.abs((n_noise_photons_per_roi*3+n_photons_per_roi*2)/2)))
         photon_counts_dict['F0_photon_counts'] = n_photons_per_roi
         photon_counts_dict['noise_photon_counts'] = n_noise_photons_per_roi
         
