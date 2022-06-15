@@ -209,7 +209,7 @@ for session in sessions:
         bpod_file = os.path.join(bpod_path,setup,'{}/{}-bpod_zaber.npy'.format(subject,session))
         bpod_data=np.load(bpod_file,allow_pickle=True).tolist()
         tiff_idx = 0 #np.argmax((np.asarray(bpod_data['scanimage_file_names'])=='no movie for this trial')==False)
-        while bpod_data['scanimage_file_names'][tiff_idx] =='no movie for this trial':
+        while str(bpod_data['scanimage_file_names'][tiff_idx]) =='no movie for this trial':
             tiff_idx +=1
         
         tiff_header = bpod_data['scanimage_tiff_headers'][tiff_idx][0]
