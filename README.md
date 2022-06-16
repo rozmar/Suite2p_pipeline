@@ -48,7 +48,7 @@ python ./register_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /ho
 
 ## Segment traces
 ```
-python ./segment_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim FOV_03_reference_is_1st_session None 1
+python ./segment_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim FOV_03_reference_is_1st_session None 1 true
 ```
 
 ## Extract traces
