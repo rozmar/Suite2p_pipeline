@@ -8,6 +8,7 @@ from suite2p.detection.detect import detect
 from suite2p.extraction.masks import create_masks
 from suite2p.extraction.extract import extract_traces_from_masks
 from suite2p import registration
+import cv2
 import tifffile
 import sys
 # =============================================================================
@@ -48,7 +49,7 @@ except:
     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/'
     subject = 'BCI_29'
     setup = 'Bergamo-2P-Photostim'
-    fov = 'FOV_03_reference_is_1st_session'#'FOV_03'
+    fov = 'FOV_03'#'FOV_03'
     
     minimum_contrast = None
     acceptable_z_range = 1
@@ -76,6 +77,7 @@ median_z_values = []
 xoff_list = []
 yoff_list = []
 session_data_dict = {}
+reference_image_dict = {}
 for session in sessions:
     if 'z-stack' in session.lower() or '.' in session:
         continue
@@ -90,7 +92,8 @@ for session in sessions:
     concatenated_movie_filelist_json = os.path.join(FOV_dir,session,'filelist.json')
     with open(concatenated_movie_filelist_json, "r") as read_file:
         filelist_dict = json.load(read_file)
-    
+    meanimg_dict = np.load(os.path.join(FOV_dir,session,'mean_image.npy'),allow_pickle = True).tolist()
+    reference_image_dict[session] = meanimg_dict
     xoff_mean_now = []
     yoff_mean_now = []
     xoff_std_now = []
@@ -159,6 +162,14 @@ z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concaten
 
 if minimum_contrast is None:
     minimum_contrast = np.percentile(contrast,90)/2
+#%%
+
+imgs_all = []
+for session in reference_image_dict.keys():
+    
+    texted_image =cv2.putText(img=np.copy(reference_image_dict[session]['refImg']), text="{}".format(session), org=(20,40),fontFace=3, fontScale=1, color=(255,255,255), thickness=2)
+    imgs_all.append(texted_image)
+tifffile.imsave(os.path.join(FOV_dir,'session_refImages.tiff'),imgs_all)
 
 #%% quality check -Z position
 median_z_value = np.median(median_z_values)
@@ -395,8 +406,7 @@ else:
 
 #%% generate MEGATIFF
 
-import cv2
-import tifffile
+
 imgs_all = []
 for i,session in enumerate(sessions):
     if 'z-stack' in session.lower() or '.' in session:
