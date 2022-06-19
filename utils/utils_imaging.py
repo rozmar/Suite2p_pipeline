@@ -578,7 +578,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         rotation_matrix[1,0]=warp_matrix[1,0]/sx
         rotation_matrix[0,1]=warp_matrix[0,1]/sy
         rotation_matrix[1,1]=warp_matrix[1,1]/sy
-        rotation_deg = rotation*180*np.pi
+        rotation_deg = rotation*180/np.pi
         print('reference image is rotated by {} degrees'.format(rotation_deg))
 
         
