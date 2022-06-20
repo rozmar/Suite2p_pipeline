@@ -628,6 +628,9 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
                                                                       xmax1=xmax1,
                                                                       )
         refImg = refImg[0,:,:].squeeze()
+    else:
+        rotation_matrix = np.asarray([[0,0,0],[0,0,0]])
+        rotation_deg = 0
         
     
     meanimage_dict = {'refImg':refImg,
