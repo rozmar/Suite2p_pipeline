@@ -1,15 +1,12 @@
 # Suite2p_pipeline
 suite2p wrapper for multi-trial multi-session recordings
-## Mount bucket
-```
-mkdir bucket
-fusermount -u ./bucket
-gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./bucket
-```
 
 ## Install
 ```
 cd ~
+mkdir bucket
+fusermount -u ./bucket
+gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./bucket
 mkdir Scripts
 cd Scripts
 git clone https://github.com/rozmar/suite2p.git
@@ -43,23 +40,10 @@ git pull origin main
 conda activate bci_with_suite2p
 
 ```
-## Register Z-stacks
+## Run pipeline
 
 ```
-python ./register_z_stacks.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 
+python ./pipeline_main.py BCI_29 FOV_03 true
 ```
 
-## Register sessions
-```
-python ./register_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim 4 50 FOV_02
-```
 
-## Segment traces
-```
-python ./segment_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ BCI_29 Bergamo-2P-Photostim FOV_03_reference_is_1st_session None 1 true
-```
-
-## Extract traces
-```
-python ./extract_main.py /home/jupyter/temp/ /home/jupyter/bucket/Metadata/ /home/jupyter/bucket/Data/Calcium_imaging/raw/ /home/jupyter/bucket/Data/Calcium_imaging/suite2p/ /home/jupyter/bucket/Data/Behavior/BCI_exported/  BCI_29 Bergamo-2P-Photostim FOV_03 true
-```
