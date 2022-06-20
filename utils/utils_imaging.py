@@ -628,15 +628,15 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
                                                                       xmax1=xmax1,
                                                                       )
         refImg = refImg[0,:,:].squeeze()
-    else:
-        rotation_matrix = np.asarray([[0,0,0],[0,0,0]])
-        rotation_deg = 0
         
     
-    meanimage_dict = {'refImg':refImg,
-                      'rotation_matrix':rotation_matrix,
-                      'rotation_deg':rotation_deg,
-                      'movies_used':filename_list}
+        meanimage_dict = {'refImg':refImg,
+                          'rotation_matrix':rotation_matrix,
+                          'rotation_deg':rotation_deg,
+                          'movies_used':filename_list}
+    else:
+        meanimage_dict = {'refImg':refImg,
+                          'movies_used':filename_list}
     np.save(os.path.join(target_movie_directory,'mean_image.npy'),meanimage_dict)    
     
     reference_movie_json = os.path.join(target_movie_directory,'_reference_image','refimage_progress.json')
