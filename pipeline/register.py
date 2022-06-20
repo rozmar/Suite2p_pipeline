@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import os
 import shutil
-from ..utils import utils_imaging, utils_io
+from utils import utils_imaging, utils_io
 import datetime
 import json
 import time
