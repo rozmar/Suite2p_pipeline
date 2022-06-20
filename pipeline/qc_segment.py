@@ -152,7 +152,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     ax_hw = ax_contrast.twinx()
     ax_mean_intensity = fig.add_subplot(4,1,4,sharex = ax_z)
     ax_mean_intensity.set_ylabel('Trial mean intensity (pixel value)')
-    img = zcorr_list_concatenated.T
+    img = zcorr_list_concatenated_norm.T
     ax_z.imshow(img ,aspect='auto', alpha = 1,origin='lower',cmap = 'magma')
     
     x = np.arange(len(xoff_mean_list_concatenated))
