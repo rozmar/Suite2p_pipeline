@@ -537,7 +537,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         refImg = registration.register.compute_reference(ops, frames)
         print('Reference frame, %0.2f sec.'%(time.time()-t0))
     ops['refImg'] = refImg
-    
+    refImg_original = refImg.copy()
     if 'mean_image.npy' in os.listdir(os.path.join(target_movie_directory,'_reference_image')):# there is a previous reference image
         meanimage_dict_old = np.load(os.path.join(target_movie_directory,'_reference_image','mean_image.npy'),allow_pickle = True).tolist()
         refImg_old = meanimage_dict_old['refImg']
@@ -631,11 +631,13 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         
     
         meanimage_dict = {'refImg':refImg,
+                          'refImg_original':refImg_original,
                           'rotation_matrix':rotation_matrix,
                           'rotation_deg':rotation_deg,
                           'movies_used':filename_list}
     else:
         meanimage_dict = {'refImg':refImg,
+                          'refImg_original':refImg_original,
                           'movies_used':filename_list}
     np.save(os.path.join(target_movie_directory,'mean_image.npy'),meanimage_dict)    
     
