@@ -37,6 +37,7 @@ git pull origin main
 cd ..
 cd BCI_analysis
 git pull origin main
+cd ..
 cd Suite2p_pipeline
 git pull origin main
 conda activate bci_with_suite2p
