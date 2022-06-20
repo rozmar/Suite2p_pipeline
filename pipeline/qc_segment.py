@@ -22,6 +22,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                acceptable_z_range = 1,
                segment_cells = False):
     # TODO these variables are hard-coded
+    import cv2
     use_cellpose = False
     photostim_name_list = ['slm','stim','file','photo']
     blacklist_for_binned_movie = {'BCI_26':['060622']}
@@ -399,8 +400,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     #%% generate Session mean images
     imgs_all = []
     meanImages = imgs_all.copy()
-    import cv2
-    import tifffile
+    
     for i,session in enumerate(sessions):
         if 'z-stack' in session.lower() or '.' in session:
             continue
