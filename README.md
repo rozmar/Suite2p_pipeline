@@ -9,12 +9,17 @@ gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./buc
 
 ## Install
 ```
+cd ~
 mkdir Scripts
 cd Scripts
 git clone https://github.com/rozmar/suite2p.git
 cd suite2p
 conda env create -f environment.yml
 conda activate bci_with_suite2p
+pip install -e .
+cd ..
+git clone https://github.com/kpdaie/BCI_analysis.git
+cd BCI_analysis
 pip install -e .
 cd ..
 git clone https://github.com/rozmar/Suite2p_pipeline.git
@@ -30,6 +35,8 @@ gcsfuse --implicit-dirs --only-dir marton.rozsa aind-transfer-service-test ./buc
 cd Scripts/suite2p/
 git pull origin main
 cd ..
+cd BCI_analysis
+git pull origin main
 cd Suite2p_pipeline
 git pull origin main
 conda activate bci_with_suite2p
