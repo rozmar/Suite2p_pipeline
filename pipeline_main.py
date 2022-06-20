@@ -4,7 +4,9 @@ import BCI_analysis
 
 subject = sys.argv[1]
 fov = sys.argv[2]
-resegment_cells = 'true' in sys.argv[3].lower()
+register_z_stacks = 'true' in sys.argv[3].lower()
+regiter_sessions = 'true' in sys.argv[4].lower()
+resegment_cells = 'true' in sys.argv[5].lower()
 
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
@@ -16,24 +18,24 @@ bpod_path = '/home/jupyter/bucket/Data/Behavior/BCI_exported/'
 setup = 'Bergamo-2P-Photostim'
 save_path = "/home/jupyter/bucket/Data/Calcium_imaging/sessionwise_tba"
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
+if register_z_stacks:
+    register.register_z_stacks(local_temp_dir = local_temp_dir,
+                              metadata_dir = metadata_dir,
+                              raw_scanimage_dir_base =raw_scanimage_dir_base,
+                              suite2p_dir_base = suite2p_dir_base,
+                              subject_ = subject,
+                              setup = setup)
 
-register.register_z_stacks(local_temp_dir = local_temp_dir,
-                          metadata_dir = metadata_dir,
-                          raw_scanimage_dir_base =raw_scanimage_dir_base,
-                          suite2p_dir_base = suite2p_dir_base,
-                          subject_ = subject,
-                          setup = setup)
-
-
-register.register_session(local_temp_dir = local_temp_dir,
-                          metadata_dir = metadata_dir,
-                          raw_scanimage_dir_base =raw_scanimage_dir_base,
-                          suite2p_dir_base = suite2p_dir_base,
-                          subject = subject,
-                          setup = setup,
-                          max_process_num = 4,
-                          batch_size = 50,
-                          FOV_needed = fov)
+if regiter_sessions:
+    register.register_session(local_temp_dir = local_temp_dir,
+                              metadata_dir = metadata_dir,
+                              raw_scanimage_dir_base =raw_scanimage_dir_base,
+                              suite2p_dir_base = suite2p_dir_base,
+                              subject = subject,
+                              setup = setup,
+                              max_process_num = 4,
+                              batch_size = 50,
+                              FOV_needed = fov)
 
 qc_segment.qc_segment(local_temp_dir = local_temp_dir,
                       metadata_dir = metadata_dir,
