@@ -62,4 +62,4 @@ BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup),
                                        save_path, 
                                        overwrite=resegment_cells, 
                                        mice_name = subject,
-                                       fov_list = fov)
+                                       fov_list = [fov])

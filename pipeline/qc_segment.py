@@ -386,7 +386,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         for ti,img in enumerate(imgs_):
             texted_image =cv2.putText(img=np.copy(img), text="{}_T{}".format(session,ti), org=(20,40),fontFace=3, fontScale=1, color=(255,255,255), thickness=2)
             imgs.append(texted_image)
-            print([i,ti])
+            #print([i,ti])
         imgs = np.asarray(imgs,dtype = np.int32)
         if len(imgs_all) == 0:
             imgs_all = imgs
