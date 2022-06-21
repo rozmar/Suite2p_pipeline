@@ -179,6 +179,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     ax_mean_intensity.set_xlabel('Total trial number')
     ax_xy.set_ylabel('XY offsets (pixels)')
     ax_xy.set_ylim([ax_xy.get_ylim()[0],np.diff(ax_xy.get_ylim())+ax_xy.get_ylim()[1]])
+    ax_zz.set_ylim([median_z_value-acceptable_z_range*3,median_z_value+acceptable_z_range*3])
     ax_zz.set_ylim([ax_zz.get_ylim()[0]-np.diff(ax_zz.get_ylim()),ax_zz.get_ylim()[1]])
     ax_zz.set_ylabel('Z offset (plane)')
     #ax_zz.legend()#(bbox_to_anchor = (1.1,1))
