@@ -457,9 +457,9 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     fig = plt.figure(figsize = [20,20])
     for i,(stack,zcorr,stack_zcorr) in enumerate(zip(stacks_dict.keys(),session_zcorrs,stack_zcorrs)):
         ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+1)
-        max_zcorr_vals = np.max(zcorr,1)
-        min_zcorr_vals = np.min(zcorr,1)
-        zcorr_norm = (zcorr - min_zcorr_vals[:,np.newaxis])/(max_zcorr_vals-min_zcorr_vals)[:,np.newaxis]
+        max_zcorr_vals = np.max(zcorr,0)
+        min_zcorr_vals = np.min(zcorr,0)
+        zcorr_norm = (zcorr - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
         ax_now.imshow(zcorr_norm,aspect = 'auto')
         ax_now.set_title(stack)
         ax_now.set_xticks(np.arange(zcorr.shape[1]))
