@@ -43,7 +43,7 @@ conda activate bci_with_suite2p
 ## Run pipeline
 
 ```
-python ./pipeline_main.py BCI_29 FOV_03 true
+python ./pipeline_main.py BCI_29 FOV_03 true true true
 ```
 ## Add BCI_analysis
 ```
@@ -53,5 +53,7 @@ conda activate bci_with_suite2p
 git clone https://github.com/kpdaie/BCI_analysis.git
 cd BCI_analysis
 pip install -e .
+
+
 ```
 
