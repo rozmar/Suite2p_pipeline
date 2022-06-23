@@ -103,10 +103,76 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             F0 = np.load(os.path.join(FOV_dir,session,'F0.npy'))
             Fvar = np.load(os.path.join(FOV_dir,session,'Fvar.npy'))
         
+        #%%
         
-        if 'neuropil_contribution.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
-            
+        if 'channel_offset.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+            #%%
+            # this script estimates the error in scanimage baselne measurement
+            # due to inaccurate values, the dF/F amplitudes of low F0 cells
+            # are getting huge. This script finds the correct offset by
+            # minimizing the variance of maximum dF/F amplitudes across
+            # all cells
+            f0_scalar = np.mean(F0,1)
+            dff = (F-F0)/F0
+            f0_corrections = np.arange(np.min([0,-np.min(f0_scalar)]),100,.1)
+            #max_amplitudes = np.asarray(data_dict[session]['max_event_amplitude'])
+            max_amplitudes = np.nanmax(dff,1)#np.percentile(dff,95,1)#
+            amplitudes = max_amplitudes
+            amplitudes = amplitudes[np.isnan(amplitudes)==False]
+            percentiles = [0,99]
+            f0_correction = 55
+            peak_is_pronounced = False
+            while f0_correction>50 or not peak_is_pronounced:
+                var_list = []
+                percentiles[0]+=1
+                #percentiles[1]-=1
+                needed = (f0_scalar>np.percentile(f0_scalar,percentiles[0])) & \
+                    (f0_scalar<np.percentile(f0_scalar,percentiles[1])) &  \
+                    (max_amplitudes>np.percentile(amplitudes,percentiles[0])) & \
+                    (max_amplitudes<np.percentile(amplitudes,percentiles[1])) &  \
+                    (np.isnan(max_amplitudes)==False) & \
+                    (f0_scalar >0) &\
+                        (max_amplitudes>0)
+                        
+                for f0_correction in f0_corrections:
+                    f0_modified = f0_scalar+f0_correction
+                    dff_modified = max_amplitudes*f0_scalar/f0_modified
+                    var_list.append(np.std(dff_modified[needed])/np.mean(dff_modified[needed]))
+               
+                peak_is_pronounced = (var_list[0]-np.min(var_list))/(var_list[-1]-np.min(var_list))<2
+                f0_correction  = f0_corrections[np.argmin(var_list)]
     
+    
+            fig = plt.figure()
+            ax_original_f0 = fig.add_subplot(3,1,1)
+            ax_original_f0.set_title(session)
+            ax_original_f0.set_xlabel('f0')
+            ax_original_f0.set_ylabel('max df/f')
+            ax_hacked_f0 = fig.add_subplot(3,1,2,sharex = ax_original_f0)
+            ax_hacked_f0.set_xlabel('f0 corrected with {} pixel values'.format(f0_correction))
+            ax_hacked_f0.set_ylabel('max df/f')
+            ax_original_f0.semilogy(f0_scalar,max_amplitudes,'ko')
+            f0_modified = f0_scalar+f0_correction
+            dff_modified = max_amplitudes*f0_scalar/f0_modified
+            ax_hacked_f0.semilogy(f0_modified,dff_modified,'ko')
+    
+            ax_hacked_var = fig.add_subplot(3,1,3)
+    
+            ax_hacked_var.plot(f0_corrections,var_list)
+            ax_hacked_var.set_xlabel('offset')
+            ax_hacked_var.set_ylabel('std/mean')
+            f0_correction_dict = {'channel_offset':f0_correction}
+            #%%
+            fig.savefig(os.path.join(FOV_dir,session,'F0_offset.pdf'), format="pdf")
+            
+            np.save(os.path.join(FOV_dir,session,'channel_offset.npy'), f0_correction_dict,allow_pickle=True)
+        else:
+            f0_correction_dict = np.load(os.path.join(FOV_dir,session,'channel_offset.npy'),allow_pickle=True).tolist()
+        #%%
+        F+=f0_correction_dict['channel_offset']
+        F0+=f0_correction_dict['channel_offset']
+        Fneu+=f0_correction_dict['channel_offset']
+        if 'neuropil_contribution.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
             neuropil_dict = {}
             needed_idx = rollingfun(np.mean(F,0),20,'min')> np.median(rollingfun(np.mean(F,0),20,'min'))/2
             neuropil_dict['good_indices'] = needed_idx
@@ -177,6 +243,7 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
           
         
         if 'photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+            #%%
             plot_stuff = True
             stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
             photon_counts_dict = {}
@@ -252,8 +319,10 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 ax_dprime.hist(dff_1_snr,100)
                 ax_dprime.set_xlabel('d-prime for 100% dF/F change')
                 ax_dprime.set_ylabel('# of ROIs')
+                #%%
                 fig.savefig(os.path.join(FOV_dir,session,'photon_counts.pdf'), format="pdf")
             np.save(os.path.join(FOV_dir,session,'photon_counts.npy'), photon_counts_dict,allow_pickle=True)
+            
         else:
             photon_counts_dict = np.load(os.path.join(FOV_dir,session,'photon_counts.npy'),allow_pickle=True).tolist()
     # =============================================================================
