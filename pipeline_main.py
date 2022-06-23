@@ -7,7 +7,7 @@ fov = sys.argv[2]
 register_z_stacks = 'true' in sys.argv[3].lower()
 regiter_sessions = 'true' in sys.argv[4].lower()
 resegment_cells = 'true' in sys.argv[5].lower()
-
+overwrite_export = 'true' in sys.argv[6].lower()
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
@@ -56,12 +56,12 @@ extract.extract_traces(local_temp_dir = local_temp_dir,
                       subject = subject,
                       setup = setup,
                       fov = fov,
-                      overwrite = resegment_cells)
+                      overwrite = overwrite_export)
 
 BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup), 
                                        os.path.join(raw_scanimage_dir_base,setup), 
                                        os.path.join(bpod_path,setup),
                                        save_path, 
-                                       overwrite=resegment_cells, 
+                                       overwrite=overwrite_export, 
                                        mice_name = subject,
                                        fov_list = [fov])
