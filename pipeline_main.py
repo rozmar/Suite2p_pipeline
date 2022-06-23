@@ -1,6 +1,9 @@
 import sys,os
 from pipeline import register, qc_segment,extract
-import BCI_analysis
+try:
+    import BCI_analysis
+except:
+    print('could not import BCI_analysis.. skipping')
 
 subject = sys.argv[1]
 fov = sys.argv[2]
