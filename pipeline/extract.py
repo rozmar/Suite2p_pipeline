@@ -64,9 +64,11 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             F = np.load(os.path.join(FOV_dir,session,'F.npy'))
             Fneu = np.load(os.path.join(FOV_dir,session,'Fneu.npy'))
         if 'F0.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+            #%%
             F0 = np.zeros_like(F)
             Fvar = np.zeros_like(F)
             print('calculating f0 for {}'.format(session))
+            f0_offsets = []
             for cell_idx in range(F.shape[0]):
                 #cell_idx =445
                 f = F[cell_idx,:]
@@ -87,7 +89,7 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 means_roll = rollingfun(means_roll,500,'median')
                 
                 #%
-                f_scaled = np.copy(f)
+                #f_scaled = np.copy(f)
                 f0 = np.ones(len(f))
                 fvar = np.ones(len(f))
                 for start,var,fzero in zip(starts,stds_roll,means_roll):
@@ -97,6 +99,12 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 fvar[start:]=var
                 F0[cell_idx,:] = f0
                 Fvar[cell_idx,:] = fvar
+                dff = (f-f0)/f0
+                c,b = np.histogram(dff,np.arange(-1,2,.05))
+                f0_offsets.append(b[np.argmax(c)])
+            
+                #%%
+            F0 = F0*(np.median(f0_offsets)+1)
             np.save(os.path.join(FOV_dir,session,'F0.npy'), F0)
             np.save(os.path.join(FOV_dir,session,'Fvar.npy'), Fvar)
         else:
