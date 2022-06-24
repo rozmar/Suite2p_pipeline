@@ -177,9 +177,11 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         else:
             f0_correction_dict = np.load(os.path.join(FOV_dir,session,'channel_offset.npy'),allow_pickle=True).tolist()
         #%%
-        F+=f0_correction_dict['channel_offset']
-        F0+=f0_correction_dict['channel_offset']
-        Fneu+=f0_correction_dict['channel_offset']
+# =============================================================================
+#         F+=f0_correction_dict['channel_offset']
+#         F0+=f0_correction_dict['channel_offset']
+#         Fneu+=f0_correction_dict['channel_offset']
+# =============================================================================
         if 'neuropil_contribution.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
             neuropil_dict = {}
             needed_idx = rollingfun(np.mean(F,0),20,'min')> np.median(rollingfun(np.mean(F,0),20,'min'))/2
