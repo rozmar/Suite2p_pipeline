@@ -10,7 +10,8 @@ fov = sys.argv[2]
 register_z_stacks = 'true' in sys.argv[3].lower()
 regiter_sessions = 'true' in sys.argv[4].lower()
 resegment_cells = 'true' in sys.argv[5].lower()
-overwrite_export = 'true' in sys.argv[6].lower()
+correlte_z_stacks = 'true' in sys.argv[6].lower()
+overwrite_export = 'true' in sys.argv[7].lower()
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
@@ -49,7 +50,8 @@ qc_segment.qc_segment(local_temp_dir = local_temp_dir,
                       fov = fov,
                       minimum_contrast = None,
                       acceptable_z_range = 1,
-                      segment_cells = resegment_cells)
+                      segment_cells = resegment_cells,
+                      correlte_z_stacks =correlte_z_stacks) 
 
 extract.extract_traces(local_temp_dir = local_temp_dir,
                       metadata_dir = metadata_dir,
