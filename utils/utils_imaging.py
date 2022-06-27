@@ -198,7 +198,7 @@ def restore_motion_corrected_zstack(dir_now):
     imgs = np.asarray(meanimages,dtype = np.int32)
     tifffile.imsave(os.path.join(dir_now,Path(dir_now).parts[-1]+'.tif'),imgs)
         
-def average_zstack(file_in, file_out = None):
+def average_zstack(source_tiff, target_movie_directory):
     """
     Simple function that uses a non-averaged suite2p tiff file and averages it per plane.
     WARNING:
@@ -206,9 +206,9 @@ def average_zstack(file_in, file_out = None):
 
     Parameters
     ----------
-    file_in : TYPE
+    source_tiff : TYPE
         DESCRIPTION.
-    file_out : TYPE, optional
+    target_movie_directory : TYPE, optional
         DESCRIPTION. The default is None.
 
     Returns
@@ -216,14 +216,15 @@ def average_zstack(file_in, file_out = None):
     None.
 
     """
-    if file_out is None:
-        file_out = file_in
+    tiff_name = os.path.basename(source_tiff)
+    Path(target_movie_directory).mkdir(parents = True,exist_ok = True)
+    new_tiff = os.path.join(target_movie_directory,tiff_name)
     try:
-        metadata = extract_scanimage_metadata(file_in)
+        metadata = extract_scanimage_metadata(source_tiff)
         if metadata['metadata']['hStackManager']['enable'] =='true' and int(metadata['metadata']['hStackManager']['framesPerSlice'])>1 and int(metadata['metadata']['hScan2D']['logAverageFactor'])<int(metadata['metadata']['hStackManager']['framesPerSlice']):
-            tiff_orig = tifffile.imread(file_in)
+            tiff_orig = tifffile.imread(source_tiff)
             tiff_out = np.mean(tiff_orig,1)
-            tifffile.imsave(file_out,tiff_out)
+            tifffile.imsave(new_tiff,tiff_out)
             print('zstack averaged and succesfully saved')
     except:
         print('error during averaging the movie')

@@ -23,12 +23,22 @@ setup = 'Bergamo-2P-Photostim'
 save_path = "/home/jupyter/bucket/Data/Calcium_imaging/sessionwise_tba"
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 if register_z_stacks:
-    register.register_z_stacks(local_temp_dir = local_temp_dir,
-                              metadata_dir = metadata_dir,
-                              raw_scanimage_dir_base =raw_scanimage_dir_base,
-                              suite2p_dir_base = suite2p_dir_base,
-                              subject_ = subject,
-                              setup = setup)
+    try:
+        register.register_z_stacks(local_temp_dir = local_temp_dir,
+                                  metadata_dir = metadata_dir,
+                                  raw_scanimage_dir_base =raw_scanimage_dir_base,
+                                  suite2p_dir_base = suite2p_dir_base,
+                                  subject_ = subject,
+                                  setup = setup)
+    except:
+        print('could not register z-stack, trying averaging')
+        register.register_z_stacks(local_temp_dir = local_temp_dir,
+                                  metadata_dir = metadata_dir,
+                                  raw_scanimage_dir_base =raw_scanimage_dir_base,
+                                  suite2p_dir_base = suite2p_dir_base,
+                                  subject_ = subject,
+                                  setup = setup,
+                                  method = 'averaging')
 
 if regiter_sessions:
     register.register_session(local_temp_dir = local_temp_dir,

@@ -15,7 +15,8 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                       raw_scanimage_dir_base ='/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
                       suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/',
                       subject_ = None,
-                      setup = None):
+                      setup = None,
+                      method = 'suite2p'):
     """
     
 
@@ -130,8 +131,10 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                             if z_stack in tiff_files_in_raw_folder:
                                 temp_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(subject,session,z_stack[:-4]))
                                 Path(temp_dir).mkdir(exist_ok = True, parents = True)
-                                utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack)
-                                                              ,temp_dir)
+                                if method == 'suite2p':
+                                    utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack) ,temp_dir)
+                                else:
+                                    utils_imaging.average_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack) ,temp_dir)
                                 
                                 shutil.copyfile(os.path.join(temp_dir,new_zstack_name),os.path.join(z_stack_dir,new_zstack_name))
 
@@ -151,6 +154,10 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
 # subject = 'BCI_29'
 # setup = 'Bergamo-2P-Photostim'
 # =============================================================================
+def register_photostim(): #probably should just simply run the registration without even copying the files.. - just get all the slm files in a list and boom..
+    pass
+
+
 
 def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      metadata_dir = '/mnt/Data/BCI_metadata/',
