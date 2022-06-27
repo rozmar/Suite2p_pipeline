@@ -41,9 +41,13 @@ conda activate bci_with_suite2p
 
 ```
 ## Run pipeline
-
+### Registration, segmentation, extraction, everything
 ```
-python ./pipeline_main.py BCI_29 FOV_03 true true true
+python ./pipeline_main.py BCI_29 FOV_03 true true true true true
+```
+### Register and extract only a new session, no repeated segmentation
+```
+python ./pipeline_main.py BCI_29 FOV_03 true true false true false
 ```
 ## Add BCI_analysis
 ```
