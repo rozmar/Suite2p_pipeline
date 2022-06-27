@@ -217,7 +217,7 @@ def average_zstack(source_tiff, target_movie_directory):
 
     """
     Path(target_movie_directory).mkdir(parents = True,exist_ok = True)
-    new_tiff = os.path.join(target_movie_directory,os.path.basename(target_movie_directory))
+    new_tiff = os.path.join(target_movie_directory,os.path.basename(target_movie_directory)+'.tif')
     try:
         metadata = extract_scanimage_metadata(source_tiff)
         if metadata['metadata']['hStackManager']['enable'] =='true' and int(metadata['metadata']['hStackManager']['framesPerSlice'])>1 and int(metadata['metadata']['hScan2D']['logAverageFactor'])<int(metadata['metadata']['hStackManager']['framesPerSlice']):
