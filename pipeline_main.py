@@ -79,4 +79,5 @@ BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup),
                                        save_path, 
                                        overwrite=overwrite_export, 
                                        mice_name = subject,
-                                       fov_list = [fov])
+                                       fov_list = [fov],
+                                       max_frames = 500)
