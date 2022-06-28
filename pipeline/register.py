@@ -282,7 +282,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 for zstackname in available_z_stacks:
                     if '.tif' in zstackname:
                         available_z_stacks_real.append(zstackname)
-                        z_stack_dates.append(datetime.datetime.strptime(zstackname[len(subject)+1:zstackname[:6]],'%m%d%y').date()) # assuming US date standard
+                        z_stack_dates.append(datetime.datetime.strptime(zstackname[len(subject)+1:len(subject)+1+6],'%m%d%y').date()) # assuming US date standard
                         
                         
                 if len(available_z_stacks_real)>0:
