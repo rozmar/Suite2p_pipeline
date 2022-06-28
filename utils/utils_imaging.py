@@ -328,6 +328,7 @@ def register_zstack(source_tiff,target_movie_directory):
 
 def register_trial(target_movie_directory,file):
     #%%
+    error = False
     with open(os.path.join(target_movie_directory,'s2p_params.json'), "r") as read_file:
         s2p_params = json.load(read_file)
     dir_now = os.path.join(target_movie_directory,file[:-4])
@@ -408,8 +409,11 @@ def register_trial(target_movie_directory,file):
         ops['badframes']  = trace>1.5*np.median(trace)
     if 'rotation_matrix' in meanimage_dict.keys():
         ops['rotation_matrix'] = meanimage_dict['rotation_matrix']
-    
-    ops = run_s2p(ops)
+    try:
+        ops = run_s2p(ops)
+    except:
+        print('error in registering trial, skipping this one')
+        error =True
     os.remove(tiff_now) # delete the raw tiff file
     #%%
     try:
@@ -450,6 +454,7 @@ def register_trial(target_movie_directory,file):
     reg_dict['registration_finished'] = True
     reg_dict['registration_finished_time'] = str(time.time())
     reg_dict['registration_speed_fps'] = ops['nframes']/(float(reg_dict['registration_finished_time'])-float(reg_dict['registration_started_time']))
+    reg_dict['error_during_registration'] = error
     print('registration speed was {} fps'.format(reg_dict['registration_speed_fps']))
     with open(reg_json_file, "w") as data_file:
         json.dump(reg_dict, data_file, indent=2)

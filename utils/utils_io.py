@@ -330,6 +330,9 @@ def concatenate_suite2p_files(target_movie_directory):
             break
         with open(os.path.join(dir_now,'reg_progress.json'), "r") as read_file:
             reg_dict = json.load(read_file)
+        if reg_dict['error_during_registration']:
+            print('error occured during the registration of {}, skipping this file'.format(file))
+            continue
         if 'registration_finished' not in reg_dict.keys():
             print('registration is not done, stopped at {}'.format(file))
             break
