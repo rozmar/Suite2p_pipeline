@@ -277,14 +277,22 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 
                 #% select the first Z-stack in the FOV directory
                 available_z_stacks = np.sort(os.listdir(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')))
+                available_z_stacks_real = []
+                z_stack_dates = []
                 for zstackname in available_z_stacks:
                     if '.tif' in zstackname:
-                        Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
-                        shutil.copyfile(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks',zstackname),
-                                         os.path.join(temp_movie_directory,zstackname[:-4],zstackname))
-                        break
-                    else:
-                        zstackname = None
+                        available_z_stacks_real.append(zstackname)
+                        z_stack_dates.append(datetime.datetime.strptime(zstackname[len(subject)+1:zstackname[:6]],'%m%d%y').date()) # assuming US date standard
+                        
+                        
+                if len(available_z_stacks_real)>0:
+                    zstack_idx = np.argmin(np.abs(np.asarray(z_stack_dates)-session_date))
+                    zstackname = available_z_stacks_real[zstack_idx]
+                    Path(os.path.join(temp_movie_directory,zstackname[:-4])).mkdir(parents = True,exist_ok = True)
+                    shutil.copyfile(os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks',zstackname),
+                                     os.path.join(temp_movie_directory,zstackname[:-4],zstackname))
+                else:
+                    zstackname = None
                 s2p_params['z_stack_name'] =zstackname
                 sp2_params_file = os.path.join(temp_movie_directory,'s2p_params.json')
                 #%
