@@ -126,7 +126,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         z_sizes = []
         for zcorr_now in zcorr_list_concatenated:
             print(np.asarray(zcorr_now).shape)
-            z_sizes.append(zcorr_now.shape[1])
+            z_sizes.append(np.asarray(zcorr_now).shape[1])
         z_size_needed = np.min(z_sizes)
         zcorr_list_new = []
         for zcorr_now in zcorr_list_concatenated:
