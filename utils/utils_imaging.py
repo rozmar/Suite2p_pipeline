@@ -453,7 +453,10 @@ def register_trial(target_movie_directory,file):
         reg_dict = json.load(read_file)
     reg_dict['registration_finished'] = True
     reg_dict['registration_finished_time'] = str(time.time())
-    reg_dict['registration_speed_fps'] = ops['nframes']/(float(reg_dict['registration_finished_time'])-float(reg_dict['registration_started_time']))
+    try:
+        reg_dict['registration_speed_fps'] = ops['nframes']/(float(reg_dict['registration_finished_time'])-float(reg_dict['registration_started_time']))
+    except:
+        reg_dict['registration_speed_fps'] = 0
     reg_dict['error_during_registration'] = error
     print('registration speed was {} fps'.format(reg_dict['registration_speed_fps']))
     with open(reg_json_file, "w") as data_file:
