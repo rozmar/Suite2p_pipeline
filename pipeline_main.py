@@ -58,8 +58,8 @@ qc_segment.qc_segment(local_temp_dir = local_temp_dir,
                       subject = subject,
                       setup = setup,
                       fov = fov,
-                      minimum_contrast = None,
-                      acceptable_z_range = 1,
+                      minimum_contrast = 3,
+                      acceptable_z_range = 3,
                       segment_cells = resegment_cells,
                       correlte_z_stacks =correlte_z_stacks) 
 
