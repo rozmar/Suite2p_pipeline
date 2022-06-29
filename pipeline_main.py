@@ -12,6 +12,7 @@ regiter_sessions = 'true' in sys.argv[4].lower()
 resegment_cells = 'true' in sys.argv[5].lower()
 correlte_z_stacks = 'true' in sys.argv[6].lower()
 overwrite_export = 'true' in sys.argv[7].lower()
+register_photostim = 'true' in sys.argv[8].lower()
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
@@ -81,3 +82,13 @@ BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup),
                                        mice_name = subject,
                                        fov_list = [fov],
                                        max_frames = 500)
+if register_photostim:
+    register.register_photostim(local_temp_dir = local_temp_dir,
+                              metadata_dir = metadata_dir,
+                              raw_scanimage_dir_base =raw_scanimage_dir_base,
+                              suite2p_dir_base = suite2p_dir_base,
+                              subject = subject,
+                              setup = setup,
+                              max_process_num = 4,
+                              batch_size = 50,
+                              FOV_needed = fov)
