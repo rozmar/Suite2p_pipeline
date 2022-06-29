@@ -155,6 +155,7 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
 # setup = 'Bergamo-2P-Photostim'
 # =============================================================================
 def register_photostim(): #probably should just simply run the registration without even copying the files.. - just get all the slm files in a list and boom..
+
     pass
 
 
