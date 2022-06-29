@@ -199,6 +199,7 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
     file_indices = file_indices[order]
     uniquebasenames = np.unique(basenames)
     stacknames = list()
+    photostimnames = []
     for basename in uniquebasenames:
         if 'stack' in basename:
             stacks = basenames == basename
@@ -207,6 +208,14 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
             basenames = basenames[needed]
             fnames = fnames[needed]
             file_indices = file_indices[needed]
+        if 'slm' in basename:
+            stacks = basenames == basename
+            photostimnames.extend(fnames[stacks])
+            needed = basenames != basename
+            basenames = basenames[needed]
+            fnames = fnames[needed]
+            file_indices = file_indices[needed]
+        
         
     uniquebasenames = np.unique(basenames)
     start_times = list()
