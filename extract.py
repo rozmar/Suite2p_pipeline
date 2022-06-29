@@ -64,7 +64,7 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             F = np.load(os.path.join(FOV_dir,session,'F.npy'))
             Fneu = np.load(os.path.join(FOV_dir,session,'Fneu.npy'))
         if 'F0.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
-            #%%
+            #%
             F0 = np.zeros_like(F)
             Fvar = np.zeros_like(F)
             print('calculating f0 for {}'.format(session))
@@ -103,7 +103,7 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 c,b = np.histogram(dff,np.arange(-1,2,.05))
                 f0_offsets.append(b[np.argmax(c)])
             
-                #%%
+                #%
             F0 = F0*(np.median(f0_offsets)+1)
             np.save(os.path.join(FOV_dir,session,'F0.npy'), F0)
             np.save(os.path.join(FOV_dir,session,'Fvar.npy'), Fvar)
@@ -111,8 +111,18 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             F0 = np.load(os.path.join(FOV_dir,session,'F0.npy'))
             Fvar = np.load(os.path.join(FOV_dir,session,'Fvar.npy'))
         
+# =============================================================================
+#         #%%
+#         f0_offsets = []
+#         for cell_idx in range(F.shape[0]):
+#             
+#             f = F[cell_idx,:]
+#             f0 = F0[cell_idx,:]
+#             dff = (f-f0)/f0
+#             c,b = np.histogram(dff,np.arange(-1,2,.05))
+#             f0_offsets.append(b[np.argmax(c)])
+# =============================================================================
         #%%
-        
         if 'channel_offset.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
             #%%
             # this script estimates the error in scanimage baselne measurement

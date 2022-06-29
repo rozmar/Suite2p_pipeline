@@ -1,5 +1,5 @@
 import sys,os
-from pipeline import register, qc_segment,extract
+import register, qc_segment,extract
 try:
     import BCI_analysis
 except:

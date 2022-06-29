@@ -3,12 +3,11 @@ import numpy as np
 from pathlib import Path
 import os
 import shutil
-#from utils import utils_imaging, utils_io
+from utils import utils_imaging, utils_io
 import datetime
 import json
 import time
 from suite2p.io.binary import BinaryFile
-from .. import utils
 def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                       metadata_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Metadata/',
                       raw_scanimage_dir_base ='/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
