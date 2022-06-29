@@ -49,6 +49,10 @@ python ./pipeline_main.py BCI_29 FOV_03 true true true true true
 ```
 python ./pipeline_main.py BCI_29 FOV_03 true true false true false
 ```
+### Register photostim
+```
+python ./pipeline_main.py BCI_29 FOV_03 false false false false false true
+```
 ## Add BCI_analysis
 ```
 cd ~
