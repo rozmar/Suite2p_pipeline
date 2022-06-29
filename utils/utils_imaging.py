@@ -402,7 +402,7 @@ def register_trial(target_movie_directory,file, delete_raw = False):
     refImg = meanimage_dict['refImg']
     ops['refImg'] = refImg
     ops['force_refImg'] = True
-    print('regstering {}'.format(tiffs_now))
+    print('regstering {} .. {}'.format(tiffs_now[0],(tiffs_now[-1]))
     ops['do_regmetrics'] = False
 # =============================================================================
 #     ops['badframes'] = []
