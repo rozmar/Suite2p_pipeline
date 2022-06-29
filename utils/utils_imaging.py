@@ -404,16 +404,18 @@ def register_trial(target_movie_directory,file, delete_raw = False):
     ops['force_refImg'] = True
     print('regstering {}'.format(tiffs_now))
     ops['do_regmetrics'] = False
-    ops['badframes'] = []
-    for tiff_now in tiffs_now:
-        if 'slm' in tiff_now:
-            print(tiff_now)
-            reader=ScanImageTiffReader(tiff_now)
-            data = reader.data()
-            data.shape
-            trace = np.mean(np.mean(data,1),1)
-            ops['badframes'].append(trace>1.5*np.median(trace))
-    ops['badframes'] = np.concatenate(ops['badframes'])        
+# =============================================================================
+#     ops['badframes'] = []
+#     for tiff_now in tiffs_now:
+#         if 'slm' in tiff_now:
+#             print(tiff_now)
+#             reader=ScanImageTiffReader(tiff_now)
+#             data = reader.data()
+#             data.shape
+#             trace = np.mean(np.mean(data,1),1)
+#             ops['badframes'].append(trace>1.5*np.median(trace))
+#     ops['badframes'] = np.concatenate(ops['badframes'])        
+# =============================================================================
     if 'rotation_matrix' in meanimage_dict.keys():
         ops['rotation_matrix'] = meanimage_dict['rotation_matrix']
     try:
@@ -422,7 +424,7 @@ def register_trial(target_movie_directory,file, delete_raw = False):
         print('error in registering trial, skipping this one')
         error =True
     if delete_raw:
-        os.remove(tiff_now) # delete the raw tiff file
+        os.remove(tiffs_now[0]) # delete the raw tiff file
     #%%
     if type(file) == str:
         try:
