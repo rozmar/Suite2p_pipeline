@@ -125,14 +125,14 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     except: # the z-stacks have different number of planes - 
         z_sizes = []
         for zcorr_now in zcorr_list_concatenated:
-            print(zcorr_now.shape)
-            z_sizes.append(zcorr_now.shape[1])
+            print(len(zcorr_now))
+            z_sizes.append(len(zcorr_now))
         z_size_needed = np.min(z_sizes)
         zcorr_list_new = []
         for zcorr_now in zcorr_list_concatenated:
-            if zcorr_now.size[1]>z_size_needed:
-                diff = int((zcorr_now.shape[1]-z_size_needed)/2)
-                zcorr_now = np.asarray(zcorr_now)[:,diff:-diff]
+            if len(zcorr_now)>z_size_needed:
+                diff = int((len(zcorr_now)-z_size_needed)/2)
+                zcorr_now = np.asarray(zcorr_now).squeeze()[diff:-diff].tolist()
             zcorr_list_new.append(zcorr_now)
         zcorr_list_concatenated = np.concatenate(zcorr_list_new).squeeze()
         
