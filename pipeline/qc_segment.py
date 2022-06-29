@@ -128,10 +128,12 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             print(np.asarray(zcorr_now).shape)
             z_sizes.append(np.asarray(zcorr_now).shape[1])
         z_size_needed = np.min(z_sizes)
+        print(z_size_needed)
         zcorr_list_new = []
         for zcorr_now in zcorr_list_concatenated:
-            if np.asarray(zcorr_now).size[1]>z_size_needed:
-                diff = int((np.asarray(zcorr_now).size[1]-z_size_needed)/2)
+            if np.asarray(zcorr_now).shape[1]>z_size_needed:
+                diff = int((np.asarray(zcorr_now).shape[1]-z_size_needed)/2)
+                print(diff)
                 zcorr_now = np.asarray(zcorr_now)[:,diff:-diff]
             zcorr_list_new.append(zcorr_now)
         zcorr_list_concatenated = np.concatenate(zcorr_list_new).squeeze()
