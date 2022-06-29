@@ -18,8 +18,8 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                subject = 'BCI_29',
                setup = 'Bergamo-2P-Photostim',
                fov = 'FOV_03',
-               minimum_contrast = None,
-               acceptable_z_range = 1,
+               minimum_contrast = 3,
+               acceptable_z_range = 3,
                segment_cells = False,
                correlte_z_stacks = False):
     # TODO these variables are hard-coded
@@ -120,20 +120,20 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     yoff_std_list_concatenated = np.asarray(yoff_std_list_concatenated)        
     
     mean_intensity_list = np.asarray(mean_intensity_list)      
-    try:
+    try:# this is where the offsets can go btw
         zcorr_list_concatenated = np.concatenate(zcorr_list_concatenated).squeeze()
     except: # the z-stacks have different number of planes - 
         z_sizes = []
         for zcorr_now in zcorr_list_concatenated:
-            print(np.asarray(zcorr_now).shape)
+            #print(np.asarray(zcorr_now).shape)
             z_sizes.append(np.asarray(zcorr_now).shape[1])
         z_size_needed = np.min(z_sizes)
-        print(z_size_needed)
+        #print(z_size_needed)
         zcorr_list_new = []
         for zcorr_now in zcorr_list_concatenated:
             if np.asarray(zcorr_now).shape[1]>z_size_needed:
                 diff = int((np.asarray(zcorr_now).shape[1]-z_size_needed)/2)
-                print(diff)
+                #print(diff)
                 zcorr_now = np.asarray(zcorr_now)[:,diff:-diff]
             zcorr_list_new.append(zcorr_now)
         zcorr_list_concatenated = np.concatenate(zcorr_list_new).squeeze()
