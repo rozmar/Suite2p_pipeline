@@ -244,7 +244,7 @@ def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 #%
                 with open(sp2_params_file, "w") as data_file:
                     json.dump(s2p_params, data_file, indent=2)
-                file_list_dict = organize_photostim_files(source_movie_directory)
+                file_list_dict = utils_io.organize_photostim_files(source_movie_directory)
                 
 
                 reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
@@ -268,7 +268,7 @@ def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 for file_now in file_list_dict['file_order']:
                     file_list.append(os.path.join(source_movie_directory,file_now))
                 # actual registration
-                register_trial(temp_movie_directory,file_list, delete_raw = False)
+                utils_imaging.register_trial(temp_movie_directory,file_list, delete_raw = False)
                 
                 # archiving
                 Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
