@@ -51,18 +51,18 @@ if regiter_sessions:
                               max_process_num = 4,
                               batch_size = 50,
                               FOV_needed = fov)
-
-qc_segment.qc_segment(local_temp_dir = local_temp_dir,
-                      metadata_dir = metadata_dir,
-                      raw_scanimage_dir_base =raw_scanimage_dir_base,
-                      suite2p_dir_base = suite2p_dir_base,
-                      subject = subject,
-                      setup = setup,
-                      fov = fov,
-                      minimum_contrast = 3,
-                      acceptable_z_range = 3,
-                      segment_cells = resegment_cells,
-                      correlte_z_stacks =correlte_z_stacks) 
+if resegment_cells or correlte_z_stacks:
+    qc_segment.qc_segment(local_temp_dir = local_temp_dir,
+                          metadata_dir = metadata_dir,
+                          raw_scanimage_dir_base =raw_scanimage_dir_base,
+                          suite2p_dir_base = suite2p_dir_base,
+                          subject = subject,
+                          setup = setup,
+                          fov = fov,
+                          minimum_contrast = 3,
+                          acceptable_z_range = 3,
+                          segment_cells = resegment_cells,
+                          correlte_z_stacks =correlte_z_stacks) 
 
 extract.extract_traces(local_temp_dir = local_temp_dir,
                       metadata_dir = metadata_dir,
