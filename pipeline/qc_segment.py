@@ -120,8 +120,23 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     yoff_std_list_concatenated = np.asarray(yoff_std_list_concatenated)        
     
     mean_intensity_list = np.asarray(mean_intensity_list)      
-    
-    zcorr_list_concatenated = np.concatenate(zcorr_list_concatenated).squeeze()
+    try:
+        zcorr_list_concatenated = np.concatenate(zcorr_list_concatenated).squeeze()
+    except: # the z-stacks have different number of planes - 
+        z_sizes = []
+        for zcorr_now in zcorr_list_concatenated:
+            z_sizes.append(len(zcorr_now))
+        z_size_needed = np.min(z_sizes)
+        zcorr_list_new = []
+        for zcorr_now in zcorr_list_concatenated:
+            if len(zcorr_now)>z_size_needed:
+                diff = int((len(zcorr_now)-z_size_needed)/2)
+                zcorr_now = list(np.asarray(zcorr_now)[diff:-diff])
+            zcorr_list_new.append(zcorr_now)
+        zcorr_list_concatenated = np.concatenate(zcorr_list_new).squeeze()
+        
+            
+            
     max_zcorr_vals = np.max(zcorr_list_concatenated,1)
     min_zcorr_vals = np.min(zcorr_list_concatenated,1)
     contrast = max_zcorr_vals/min_zcorr_vals
