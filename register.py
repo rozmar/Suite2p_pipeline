@@ -270,10 +270,16 @@ def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 for file_now in file_list_dict['file_order']:
                     file_list_source.append(os.path.join(source_movie_directory,file_now))
                     file_list.append(os.path.join(raw_files_directory,file_now))
-                # actual registration
+                    if len(file_list_source)>100:
+                        cmd = 'gsutil -m cp {} {}'.format(' '.join(file_list_source),raw_files_directory)
+                        print(cmd)
+                        os.system(cmd)   
+                        file_list_source = []
                 cmd = 'gsutil -m cp {} {}'.format(' '.join(file_list_source),raw_files_directory)
                 print(cmd)
                 os.system(cmd)
+                # actual registration
+               
                 utils_imaging.register_trial(temp_movie_directory,file_list, delete_raw = False)
                 
                 # archiving
