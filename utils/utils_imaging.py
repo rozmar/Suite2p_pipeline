@@ -326,40 +326,43 @@ def register_zstack(source_tiff,target_movie_directory):
 
 #%%  
 
-def register_trial(target_movie_directory,file):
+def register_trial(target_movie_directory,file, delete_raw = False):
     #%%
+    if type(delete_raw) == str:
+        delete_raw = delete_raw.lower()=='true'
     error = False
     with open(os.path.join(target_movie_directory,'s2p_params.json'), "r") as read_file:
         s2p_params = json.load(read_file)
-    dir_now = os.path.join(target_movie_directory,file[:-4])
-    tiff_now = os.path.join(target_movie_directory,file[:-4],file)
-    reg_json_file = os.path.join(target_movie_directory,file[:-4],'reg_progress.json')
-    if 'reg_progress.json' in os.listdir(dir_now):
-        success = False
-        while not success:
-            try:
-                with open(reg_json_file, "r") as read_file:
-                    reg_dict = json.load(read_file)
-                    success = True
-            except:
-                print('json not ready, retrying..')
-                pass # json file is not ready yet
+    if type(file) == str:
+        dir_now = os.path.join(target_movie_directory,file[:-4])
+        tiffs_now = [os.path.join(target_movie_directory,file[:-4],file)]
+        reg_json_file = os.path.join(target_movie_directory,file[:-4],'reg_progress.json')
+        if 'reg_progress.json' in os.listdir(dir_now):
+            success = False
+            while not success:
+                try:
+                    with open(reg_json_file, "r") as read_file:
+                        reg_dict = json.load(read_file)
+                        success = True
+                except:
+                    print('json not ready, retrying..')
+                    pass # json file is not ready yet
+        else:
+            reg_dict = {'registration_started':False}
+        reg_dict = {'registration_started':True,
+                    'registration_started_time':str(time.time()),
+                    'registration_finished':False}
+        with open(reg_json_file, "w") as data_file:
+            json.dump(reg_dict, data_file, indent=2)
     else:
-        reg_dict = {'registration_started':False}
-    reg_dict = {'registration_started':True,
-                'registration_started_time':str(time.time()),
-                'registration_finished':False}
-    with open(reg_json_file, "w") as data_file:
-        json.dump(reg_dict, data_file, indent=2)
-    metadata = extract_scanimage_metadata(tiff_now)
+        print('multi-file registration mode')
+        dir_now = target_movie_directory
+        tiffs_now = file
+            
+    metadata = extract_scanimage_metadata(tiffs_now[0])
     pixelsize = metadata['roi_metadata'][0]['scanfields']['sizeXY']
     movie_dims = metadata['roi_metadata'][0]['scanfields']['pixelResolutionXY']
     zoomfactor = float(metadata['metadata']['hRoiManager']['scanZoomFactor'])
-    
-# =============================================================================
-#     XFOV = 1500*np.exp(-zoomfactor/11.5)+88 # HOTFIX for 16x objective
-#     pixelsize_real =  XFOV/movie_dims[0]
-# =============================================================================
     pixelsize_real = 800/(0.54972*zoomfactor+0.001724)/movie_dims[0] # bergamo 2p scope
     print('pixel size changed from {} to {} '.format(pixelsize,pixelsize_real))
     pixelsize = pixelsize_real
@@ -391,7 +394,7 @@ def register_trial(target_movie_directory,file):
     ops['smooth_sigma'] = s2p_params['smooth_sigma']/np.min(pixelsize)#pixelsize_real #ops['diameter']/10 #
     #ops['smooth_sigma_time'] = s2p_params['smooth_sigma_time']*float(metadata['frame_rate']) # ops['tau']*ops['fs']#
     ops['data_path'] = target_movie_directory
-    ops['tiff_list'] = [tiff_now]
+    ops['tiff_list'] = tiffs_now
     ops['batch_size'] = s2p_params['batch_size']#250
     ops['do_registration'] = 1
     ops['roidetect'] = False
@@ -399,14 +402,18 @@ def register_trial(target_movie_directory,file):
     refImg = meanimage_dict['refImg']
     ops['refImg'] = refImg
     ops['force_refImg'] = True
-    print('regstering {}'.format(tiff_now))
+    print('regstering {}'.format(tiffs_now))
     ops['do_regmetrics'] = False
-    if 'slm' in tiff_now:
-        reader=ScanImageTiffReader(tiff_now)
-        data = reader.data()
-        data.shape
-        trace = np.mean(np.mean(data,1),1)
-        ops['badframes']  = trace>1.5*np.median(trace)
+    ops['badframes'] = []
+    for tiff_now in tiffs_now:
+        if 'slm' in tiff_now:
+            print(tiff_now)
+            reader=ScanImageTiffReader(tiff_now)
+            data = reader.data()
+            data.shape
+            trace = np.mean(np.mean(data,1),1)
+            ops['badframes'].append(trace>1.5*np.median(trace))
+    ops['badframes'] = np.concatenate(ops['badframes'])        
     if 'rotation_matrix' in meanimage_dict.keys():
         ops['rotation_matrix'] = meanimage_dict['rotation_matrix']
     try:
@@ -414,53 +421,55 @@ def register_trial(target_movie_directory,file):
     except:
         print('error in registering trial, skipping this one')
         error =True
-    os.remove(tiff_now) # delete the raw tiff file
+    if delete_raw:
+        os.remove(tiff_now) # delete the raw tiff file
     #%%
-    try:
-        #%%
-        file = s2p_params['z_stack_name']
-#%
-        zstack_tiff = os.path.join(target_movie_directory,file[:-4],file)
+    if type(file) == str:
         try:
+            #%%
+            file = s2p_params['z_stack_name']
+    #%
+            zstack_tiff = os.path.join(target_movie_directory,file[:-4],file)
             try:
-                reader=ScanImageTiffReader(zstack_tiff)
-                stack=reader.data()
+                try:
+                    reader=ScanImageTiffReader(zstack_tiff)
+                    stack=reader.data()
+                except:
+                    reader=ScanImageTiffReader(zstack_tiff+'f')
+                    stack=reader.data()
             except:
-                reader=ScanImageTiffReader(zstack_tiff+'f')
-                stack=reader.data()
-        except:
-            stack = tifffile.imread(zstack_tiff)
+                stack = tifffile.imread(zstack_tiff)
+                
+            if stack.shape[1]/ops['Lx'] == 2:
+                stack = stack[:,::2,::2]
+            elif stack.shape[1]/ops['Lx'] == 4:
+                stack = stack[:,::4,::4]
+            elif stack.shape[1]/ops['Lx'] == 8:
+                stack = stack[:,::8,::8]
+            #%
+            #ops_orig, zcorr = registration.zalign.compute_zpos(stack, ops)
+            ops_orig, zcorr = registration.zalign.compute_zpos_single_frame(stack, ops['meanImg'][np.newaxis,:,:], ops)
+            np.save(ops['ops_path'], ops_orig)
             
-        if stack.shape[1]/ops['Lx'] == 2:
-            stack = stack[:,::2,::2]
-        elif stack.shape[1]/ops['Lx'] == 4:
-            stack = stack[:,::4,::4]
-        elif stack.shape[1]/ops['Lx'] == 8:
-            stack = stack[:,::8,::8]
-        #%
-        #ops_orig, zcorr = registration.zalign.compute_zpos(stack, ops)
-        ops_orig, zcorr = registration.zalign.compute_zpos_single_frame(stack, ops['meanImg'][np.newaxis,:,:], ops)
-        np.save(ops['ops_path'], ops_orig)
+            #%%
+            #reader.close()
+            #%
+        except:
+            pass # no z-stack
         
-        #%%
-        #reader.close()
-        #%
-    except:
-        pass # no z-stack
-    
-  #%%
-    with open(reg_json_file, "r") as read_file:
-        reg_dict = json.load(read_file)
-    reg_dict['registration_finished'] = True
-    reg_dict['registration_finished_time'] = str(time.time())
-    try:
-        reg_dict['registration_speed_fps'] = ops['nframes']/(float(reg_dict['registration_finished_time'])-float(reg_dict['registration_started_time']))
-    except:
-        reg_dict['registration_speed_fps'] = 0
-    reg_dict['error_during_registration'] = error
-    print('registration speed was {} fps'.format(reg_dict['registration_speed_fps']))
-    with open(reg_json_file, "w") as data_file:
-        json.dump(reg_dict, data_file, indent=2)
+      #%%
+        with open(reg_json_file, "r") as read_file:
+            reg_dict = json.load(read_file)
+        reg_dict['registration_finished'] = True
+        reg_dict['registration_finished_time'] = str(time.time())
+        try:
+            reg_dict['registration_speed_fps'] = ops['nframes']/(float(reg_dict['registration_finished_time'])-float(reg_dict['registration_started_time']))
+        except:
+            reg_dict['registration_speed_fps'] = 0
+        reg_dict['error_during_registration'] = error
+        print('registration speed was {} fps'.format(reg_dict['registration_speed_fps']))
+        with open(reg_json_file, "w") as data_file:
+            json.dump(reg_dict, data_file, indent=2)
        #%% 
 def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
     #%%

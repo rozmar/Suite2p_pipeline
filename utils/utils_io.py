@@ -180,14 +180,62 @@ def copy_tiff_files_in_loop(source_movie_directory,target_movie_directory):
     while True:
         copy_tiff_files_in_order(source_movie_directory,target_movie_directory)
         time.sleep(5)
+
+def organize_photostim_files(source_movie_directory):
+    source_movie_directory = source_movie_directory.strip("'").strip('"')
+
+    files_dict = extract_files_from_dir(source_movie_directory)
+    file_idxs = (files_dict['exts']=='.tif')
+    fnames = files_dict['filenames'][file_idxs]
+    file_indices = files_dict['fileindices'][file_idxs]
+    basenames = files_dict['basenames'][file_idxs]
+    order  = np.argsort(file_indices)
+    fnames = fnames[order]
+    basenames = basenames[order]
+    file_indices = file_indices[order]
+    uniquebasenames = np.unique(basenames)
+    for basename in uniquebasenames:
+        if 'slm' not in basename:
+            needed = basenames != basename
+            basenames = basenames[needed]
+            fnames = fnames[needed]
+            file_indices = file_indices[needed]
         
+        
+    uniquebasenames = np.unique(basenames)
+    metadata_list = []
+    start_times = list()
+    tokeep = np.ones(len(uniquebasenames))
+    for i,basename in enumerate(uniquebasenames):
+        fname = fnames[np.where(basename==basenames)[0][0]]
+        try:
+            metadata = extract_scanimage_metadata(os.path.join(files_dict['dir'],fname))
+            start_times.append(metadata['movie_start_time'])
+        except:
+            metadata = None
+            print('error in {}'.format(basename))
+            start_times.append(np.nan)
+            tokeep[i]=0
+        metadata_list.append(metadata)
+    start_times = np.asarray(start_times)[tokeep==1]
+    uniquebasenames = np.asarray(uniquebasenames)[tokeep==1]    
+    order = np.argsort(start_times)  
+    fnames_new = list()
+    for idx in order:
+        fnames_new.append(fnames[basenames==uniquebasenames[idx]])
+    fnames = np.concatenate(fnames_new)
+    
+    out_dict = {'base_names':uniquebasenames,
+                'base_metadata':metadata_list,
+                'file_order':fnames}
+    return out_dict
+    
+    
 
 def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
     source_movie_directory = source_movie_directory.strip("'").strip('"')
     target_movie_directory = target_movie_directory.strip("'").strip('"')
     Path(target_movie_directory).mkdir(parents = True,exist_ok = True)
-    dirs_in_target_dir = os.listdir(target_movie_directory)
-
     files_dict = extract_files_from_dir(source_movie_directory)
     file_idxs = (files_dict['exts']=='.tif')
     fnames = files_dict['filenames'][file_idxs]
@@ -247,19 +295,7 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
         file_dict['copied_stacks'] = list()
     if 'copy_finished' not in file_dict.keys():
         file_dict['copy_finished'] = False
-# =============================================================================
-#     for stackname in stacknames:
-#         if stackname not in file_dict['copied_stacks']:
-#             target_dir = os.path.join(target_movie_directory,stackname[:-4])
-#             Path(target_dir).mkdir(parents = True,exist_ok = True)
-#             sourcefile = os.path.join(source_movie_directory,stackname)
-#             destfile = os.path.join(os.path.join(target_movie_directory,stackname[:-4]),stackname)
-#             shutil.copyfile(sourcefile,destfile+'_tmp')
-#             os.rename(destfile+'_tmp',destfile)
-#             file_dict['copied_stacks'].append(stackname)
-#             np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
-#             
-# =============================================================================
+
     print('starting to copy {} files'.format(len(fnames)))
     for fname in fnames:
         if fname not in file_dict['copied_files']:#dirs_in_target_dir: 
@@ -275,6 +311,19 @@ def copy_tiff_files_in_order(source_movie_directory,target_movie_directory):
             #break
     file_dict['copy_finished'] = True
     np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
+# =============================================================================
+#     for stackname in stacknames:
+#         if stackname not in file_dict['copied_stacks']:
+#             target_dir = os.path.join(target_movie_directory,stackname[:-4])
+#             Path(target_dir).mkdir(parents = True,exist_ok = True)
+#             sourcefile = os.path.join(source_movie_directory,stackname)
+#             destfile = os.path.join(os.path.join(target_movie_directory,stackname[:-4]),stackname)
+#             shutil.copyfile(sourcefile,destfile+'_tmp')
+#             os.rename(destfile+'_tmp',destfile)
+#             file_dict['copied_stacks'].append(stackname)
+#             np.save(os.path.join(target_movie_directory,'copy_data.npy'),file_dict)
+#             
+# =============================================================================
 # =============================================================================
 #     h5_file_idxs = (files_dict['exts']=='.h5')
 #     h5_fnames = files_dict['filenames'][h5_file_idxs]

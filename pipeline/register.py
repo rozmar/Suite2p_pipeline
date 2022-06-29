@@ -8,8 +8,8 @@ import datetime
 import json
 import time
 from suite2p.io.binary import BinaryFile
-
-
+from ..utils.utils_io import  organize_photostim_files
+from ..utils.utils_imaging import register_trial
 def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                       metadata_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Metadata/',
                       raw_scanimage_dir_base ='/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
@@ -154,11 +154,135 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
 # subject = 'BCI_29'
 # setup = 'Bergamo-2P-Photostim'
 # =============================================================================
-def register_photostim(): #probably should just simply run the registration without even copying the files.. - just get all the slm files in a list and boom..
+def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
+                     metadata_dir = '/mnt/Data/BCI_metadata/',
+                     raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
+                     suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/',
+                     subject = None,
+                     setup = 'Bergamo-2P-Photostim',
+                     max_process_num = 4,
+                     batch_size = 50,
+                     FOV_needed = None):  
+    #%%
+    ########### TODO these variables are hard-coded now
+    repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
+    suite2p_dir_base_gs = 'gs://aind-transfer-service-test/marton.rozsa/Data/Calcium_imaging/suite2p/'#TODO this is hard-coded):
+    s2p_params = {'max_reg_shift':50, # microns
+                'max_reg_shift_NR': 20, # microns
+                'block_size': 200, # microns
+                'smooth_sigma':0.5, # microns
+                'smooth_sigma_time':0, #seconds,
+                'overwrite': False,
+                'batch_size':batch_size,
+                #'num_workers':4,
+                'z_stack_name':'',
+                'reference_session':''} # folder where the suite2p output is saved
+    
+    subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+    sessions = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject))
+    session_date_dict = {}
+    for session in sessions:
+        try:
+            session_date = datetime.datetime.strptime(session,'%m%d%y')
+        except:
+            try:
+                session_date = datetime.datetime.strptime(session,'%Y-%m-%d')
+            except:
+                try:
+                    session_date = datetime.datetime.strptime(session[:6],'%m%d%y')
+                except:
+                    print('cannot understand date for session dir: {}'.format(session))
+                    continue
+        if session_date.date() in session_date_dict.keys():
+            print('there were multiple sessions on {}'.format(session_date.date()))
+            if type(session_date_dict[session_date.date()]) == list():
+                session_date_dict[session_date.date()].append(session)
+            else:
+                session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session]
+        else:
+            session_date_dict[session_date.date()] = session
+    
+    FOV_list_ = np.unique(np.asarray(subject_metadata['FOV'].values,str))
+    FOV_list = []
+    for FOV in FOV_list_:
+        if FOV != '-' and FOV != 'nan' and len(FOV)>0:
+            FOV_list.append(FOV)
+    
+    for FOV in FOV_list:
+        if FOV_needed is not None:
+            if FOV.lower() != FOV_needed.lower():
+                continue
+        first_session_of_FOV = True
+        session_dates = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
+        training_types = subject_metadata.loc[subject_metadata['FOV']==FOV,'Training type']
+        for session_date,training_type in zip(session_dates,training_types):
+            if "photostim" not in training_type.lower():
+                print('no photostim according to metadata in session {}'.format(session_date))
+                continue
+            session_date = datetime.datetime.strptime(session_date,'%Y/%m/%d').date()
+            if session_date not in session_date_dict.keys():
+                print('session not found in raw scanimage folder: {}'.format(session_date))
+                continue
+            session_ = session_date_dict[session_date]
+            
+            #print([session_,len(session)])
+            if type(session_)== str:
+                session_ = [session_]
+            for session in session_:
+                
+                print(session)
+                archive_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session,'photostim')
+                archive_movie_directory_gs = os.path.join(suite2p_dir_base_gs,setup,subject,FOV,session,'photostim')
+                if os.path.exists(archive_movie_directory):
+                    if len(os.listdir(archive_movie_directory))>1:
+                        print('{} already registered and saved, skipping')
 
-    pass
+                        continue
+                # start copying files to local drive
+                source_movie_directory = os.path.join(raw_scanimage_dir_base,setup,subject,session)
+                temp_movie_directory = os.path.join(local_temp_dir,'{}_{}'.format(subject,session))
+                Path(temp_movie_directory).mkdir(parents = True,exist_ok = True)
+                sp2_params_file = os.path.join(temp_movie_directory,'s2p_params.json')
+                #%
+                with open(sp2_params_file, "w") as data_file:
+                    json.dump(s2p_params, data_file, indent=2)
+                file_list_dict = organize_photostim_files(source_movie_directory)
+                
 
-
+                reference_movie_directory = os.path.join(suite2p_dir_base,setup,subject,FOV,session)
+            
+                with open(os.path.join(reference_movie_directory,'filelist.json')) as f:
+                    filelist_dict_ = json.load(f)
+               # ops = np.load(os.path.join(reference_movie_directory,'ops.npy'),allow_pickle=True).tolist()
+                #z_plane_indices = np.argmax(ops['zcorr_list'],1)
+                z_plane_indices = filelist_dict_['zoff_mean_list'] ##HOTFIX - ops and filelist doesn't match ??
+                #print([len(z_plane_indices),len(z_plane_indices_2)])
+                needed_trials = z_plane_indices == np.median(z_plane_indices) #
+                meanimage_all = np.load(os.path.join(reference_movie_directory,'meanImg.npy'))
+                mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
+                meanimage_dict = {'refImg':mean_img,
+                                  'movies_used':np.asarray(filelist_dict_['file_name_list'])[needed_trials],
+                                  'reference_session':session}
+                np.save(os.path.join(temp_movie_directory,'mean_image.npy'),meanimage_dict) 
+                
+                
+                file_list = []
+                for file_now in file_list_dict['file_order']:
+                    file_list.append(os.path.join(source_movie_directory,file_now))
+                # actual registration
+                register_trial(temp_movie_directory,file_list, delete_raw = False)
+                
+                # archiving
+                Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
+                command_list = ['gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,'*.*'),archive_movie_directory),
+                                'gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp {} {}'.format(os.path.join(temp_movie_directory,'suite2p','plane0','*.*'),archive_movie_directory_gs)]
+                               # 'gsutil -m cp {} {}'.format(os.path.join(temp_movie_directory,s2p_params['z_stack_name'][:-4],s2p_params['z_stack_name']),archive_movie_directory)]
+                bash_command = r" && ".join(command_list)
+                print(bash_command)
+                os.system(bash_command)
+                
+                os.system('rm -r {}'.format(temp_movie_directory))
+               #%% 
 
 def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      metadata_dir = '/mnt/Data/BCI_metadata/',
@@ -409,7 +533,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                             continue
         
                         cluster_command_list = ['cd {}'.format(repo_location),
-                                                "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file)]
+                                                "python cluster_helper.py {} \"{}\" \"{}\"".format('utils_imaging.register_trial',temp_movie_directory,file,'True')]
                         bash_command = r" && ".join(cluster_command_list)
                         if not copy_finished:
                             max_process_num_ = 2
