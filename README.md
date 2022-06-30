@@ -43,7 +43,7 @@ conda activate bci_with_suite2p
 ## Run pipeline
 ### Registration, segmentation, extraction, everything with photostim
 ```
-python ./pipeline_main.py BCI_29 FOV_03 true true true true true
+python ./pipeline_main.py BCI_29 FOV_03 true true true true true true
 ```
 ### Register and extract only a new session, no repeated segmentation with photostim
 ```
