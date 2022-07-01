@@ -137,10 +137,10 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             max_amplitudes = np.nanmax(dff,1)#np.percentile(dff,95,1)#
             amplitudes = max_amplitudes
             amplitudes = amplitudes[np.isnan(amplitudes)==False]
-            percentiles = [0,99]
+            percentiles = [1,99]
             f0_correction = 55
             peak_is_pronounced = False
-            while f0_correction>50 or not peak_is_pronounced:
+            while (f0_correction>50 or not peak_is_pronounced) and np.diff(percentiles)>50:
                 var_list = []
                 percentiles[0]+=1
                 #percentiles[1]-=1
