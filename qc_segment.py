@@ -11,6 +11,161 @@ from suite2p import registration
 import cv2
 import tifffile
 
+
+def correlate_z_stacks(FOV_dir):
+
+    try:
+        binned_movies_dict = np.load(os.path.join(FOV_dir,'session_mean_images.npy'),allow_pickle = True).tolist()
+    except:
+        binned_movies_dict = {}
+    try:
+        z_stack_corr_dict = np.load(os.path.join(FOV_dir,'z_stack_correlations.npy'),allow_pickle = True).tolist()
+    except:
+        z_stack_corr_dict = {}
+    
+    sessions_ = os.listdir(FOV_dir)
+    sessions = []
+    for session in sessions_:
+        if 'z-stack' in session.lower() or '.' in session:
+            continue
+        sessions.append(session)
+    
+    for session in sessions:
+        if session not in binned_movies_dict.keys():
+            mov = np.load(os.path.join(FOV_dir,session,'binned_movie.npy'))
+            #%
+            binned_movies_dict[session] = {'meanImg':np.mean(mov,0),
+                                           'maxImg':np.max(mov,0),
+                                           'stdImg':np.std(mov,0)}
+    np.save(os.path.join(FOV_dir,'session_mean_images.npy'),binned_movies_dict)
+    ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()     
+    
+    
+    
+    #%
+    zstack_names = os.listdir(os.path.join(FOV_dir,'Z-stacks'))
+    stacks_dict = {}
+    for zstack_name in np.sort(zstack_names):
+        if '.tif' in zstack_name:
+            stack = tifffile.imread(os.path.join(FOV_dir,'Z-stacks',zstack_name))
+            stacks_dict[zstack_name[:-4]]= stack    
+    
+    #%
+    ops['maxregshift'] = .3
+    session_zcorrs = []
+    stack_zcorrs = []
+    for stack in stacks_dict.keys():
+        if stack not in z_stack_corr_dict.keys():
+            #%
+            z_stack_corr_dict[stack] = {'stacks':{},
+                                        'sessions':{}}
+            #%
+        zcorr_list = []
+        #%
+        for session in sessions:
+            
+            if session not in z_stack_corr_dict[stack]['sessions'].keys():
+                ops_orig, zcorr_orig = registration.zalign.compute_zpos_single_frame(stacks_dict[stack], binned_movies_dict[session]['meanImg'][np.newaxis,:,:], ops)
+                zcorr_list.append(zcorr_orig)
+                z_stack_corr_dict[stack]['sessions'][session] = zcorr_orig
+            else:
+                zcorr_list.append(z_stack_corr_dict[stack]['sessions'][session])
+#%
+        session_zcorrs.append(np.asarray(zcorr_list).squeeze())
+        stack_zcorr_now = []
+        for stack_ in stacks_dict.keys():
+            if stack_ not in z_stack_corr_dict[stack]['stacks'].keys():
+                ops_orig, zcorr_orig = registration.zalign.compute_zpos_single_frame(stacks_dict[stack], stacks_dict[stack_], ops)
+                z_stack_corr_dict[stack]['stacks'][stack_] = zcorr_orig
+            else:
+                zcorr_orig =z_stack_corr_dict[stack]['stacks'][stack_]
+            stack_zcorr_now.append(zcorr_orig)
+        stack_zcorrs.append(stack_zcorr_now)
+    #% calculate offsets
+    from scipy import interpolate
+    #stack_shift_list = []
+    for zstack_1 in z_stack_corr_dict.keys():
+        print(zstack_1)
+        if 'stack_offsets' not in z_stack_corr_dict[zstack_1].keys():
+            z_stack_corr_dict[zstack_1]['stacks_offsets'] = {}
+            z_stack_corr_dict[zstack_1]['stacks_loss'] = {}
+            z_stack_corr_dict[zstack_1]['stacks_sigma'] = {}
+        for zstack_2 in z_stack_corr_dict.keys():
+            if zstack_2 in z_stack_corr_dict[zstack_1]['stacks_offsets'].keys():
+                continue
+            matrix = z_stack_corr_dict[zstack_1]['stacks'][zstack_2]
+            max_zcorr_vals = np.max(matrix,0)
+            min_zcorr_vals = np.min(matrix,0)
+            matrix = (matrix - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
+            f = interpolate.interp2d(np.arange(matrix.shape[0]), np.arange(matrix.shape[1]), matrix, kind='linear')
+            matrix = f(np.arange(0,matrix.shape[0],.1), np.arange(0,matrix.shape[1],.1))
+            matrix = matrix/np.sum(matrix)
+           # asasda
+            offset_list = []
+            loss_list = []
+            sigma_list = [0,10,20,30,50,100,150,200,300]
+            for sigma in sigma_list:
+                
+                reference = np.eye(matrix.shape[0])
+                max_zcorr_vals = np.max(reference,0)
+                min_zcorr_vals = np.min(reference,0)
+                reference = (reference - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
+                reference =  reference/np.sum(reference)
+                reference = scipy.ndimage.gaussian_filter(reference, sigma)
+                shift_list = []
+                loss = []
+                for shift in range(int(-1*matrix.shape[0]/2),int(matrix.shape[0]/2)):
+                    shift_list.append(shift/10)
+                    d = np.roll(matrix,shift) - reference
+                    d[d<0]=0
+                    loss.append(np.sum(np.abs(d)))
+                    #asdas
+                offset_list.append(shift_list[np.argmin(loss)])
+                loss_list.append(np.min(loss))
+            idx = np.argmin(loss_list)
+            z_stack_corr_dict[zstack_1]['stacks_offsets'][zstack_2]=offset_list[idx]
+            z_stack_corr_dict[zstack_1]['stacks_loss'][zstack_2]=loss_list[idx]
+            z_stack_corr_dict[zstack_1]['stacks_sigma'][zstack_2]=sigma_list[idx]/10
+    np.save(os.path.join(FOV_dir,'z_stack_correlations.npy'),z_stack_corr_dict)
+
+        #%
+    import matplotlib
+    font = { 'size'   : 6}
+        
+    matplotlib.rc('font', **font)
+    sessions_real = []       
+    for i,session in enumerate(sessions):
+        if 'z-stack' in session.lower() or '.' in session:
+            continue
+        sessions_real.append(session)
+    fig = plt.figure(figsize = [20,20])
+    for i,(stack,zcorr,stack_zcorr) in enumerate(zip(stacks_dict.keys(),session_zcorrs,stack_zcorrs)): 
+        zcorr = zcorr.T
+        ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+1)
+        max_zcorr_vals = np.max(zcorr,0)
+        min_zcorr_vals = np.min(zcorr,0)
+        zcorr_norm = (zcorr - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
+        ax_now.imshow(zcorr_norm,aspect = 'auto')
+        ax_now.set_ylabel(stack)
+        
+        #
+        ax_now.set_xticks(np.arange(zcorr.shape[1]))
+        ax_now.set_xticklabels(sessions_real)
+        for i_zstack,(stack_image,stack_2_name) in enumerate(zip(stack_zcorr,stacks_dict.keys())):
+            ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+i_zstack+2)
+            max_zcorr_vals = np.max(stack_image,0)
+            min_zcorr_vals = np.min(stack_image,0)
+            stack_image_norm = (stack_image - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
+            ax_now.imshow(stack_image_norm,aspect = 'auto')
+            ax_now.set_xlabel(stack_2_name)
+            ax_now.set_ylabel(stack)
+            ax_now.axis('off')
+            ax_now.set_title('{} offset {:.2f} loss {} sigma'.format(z_stack_corr_dict[stack]['stacks_offsets'][stack_2_name],
+                                                              round(z_stack_corr_dict[stack]['stacks_loss'][stack_2_name],1),
+                                                              z_stack_corr_dict[stack]['stacks_sigma'][stack_2_name]))
+            #%
+    fig.savefig(os.path.join(FOV_dir,'Z-positions.pdf'), format="pdf")
+
 def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                metadata_dir = '/mnt/Data/BCI_metadata/',
                raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
@@ -35,6 +190,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     sessions=os.listdir(FOV_dir)
     binned_movie_concatenated = []
     zcorr_list_concatenated = []
+    session_zoffset_list_concatenated = []
     xoff_mean_list_concatenated = []
     yoff_mean_list_concatenated = []
     xoff_std_list_concatenated = []
@@ -48,10 +204,24 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     yoff_list = []
     session_data_dict = {}
     reference_image_dict = {}
+    
+    correlate_z_stacks(FOV_dir) # calculate Z-stack correlations
+    z_stack_corr_dict = np.load(os.path.join(FOV_dir,'z_stack_correlations.npy'),allow_pickle = True).tolist()
+    z_offset = 0
+    reference_z_stack_name= None
     for session in sessions:
         if 'z-stack' in session.lower() or '.' in session:
             continue
         print(session)
+        
+        with open(os.path.join(FOV_dir,session,'s2p_params.json')) as f:
+            s2p_params = json.load(f)
+        
+        z_stack_name = s2p_params['z_stack_name']
+        if reference_z_stack_name is not None:
+            z_offset += z_stack_corr_dict[z_stack_name]['stacks_offsets'][reference_z_stack_name]
+        reference_z_stack_name = z_stack_name
+            
         new_session_idx.append(trial_i)
         new_session_names.append(session)
         with open(os.path.join(FOV_dir,session,'filelist.json')) as f:
@@ -103,22 +273,24 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             framenum_so_far += framenum
         session_data_dict[session] = {'xoff':xoff_now,
                                       'yoff':yoff_now,
-                                      'zoff':zoff_now}
+                                      'zoff':zoff_now,
+                                      'session_z_offfset':z_offset}
         
         xoff_mean_list_concatenated.extend(xoff_mean_now)
         yoff_mean_list_concatenated.extend(yoff_mean_now)
         xoff_std_list_concatenated.extend(xoff_std_now)
         yoff_std_list_concatenated.extend(yoff_std_now)
         zcorr_list_concatenated.extend(zoff_now)
+        session_zoffset_list_concatenated.extend((np.zeros(len(zoff_now))+z_offset).tolist())
         mean_intensity_list.extend(mean_int_now)
         trial_i += len(xoff_mean_now)
-        median_z_values.append(np.median(np.argmax(zoff_now,2).squeeze()))
+        median_z_values.append(np.median(np.argmax(zoff_now,2).squeeze())+z_offset)
     new_session_idx.append(trial_i) # end of all trials
     xoff_mean_list_concatenated = np.asarray(xoff_mean_list_concatenated)        
     yoff_mean_list_concatenated = np.asarray(yoff_mean_list_concatenated)        
     xoff_std_list_concatenated = np.asarray(xoff_std_list_concatenated)        
     yoff_std_list_concatenated = np.asarray(yoff_std_list_concatenated)        
-    
+    session_zoffset_list_concatenated = np.asarray(session_zoffset_list_concatenated)    
     mean_intensity_list = np.asarray(mean_intensity_list)      
     try:# this is where the offsets can go btw
         zcorr_list_concatenated = np.concatenate(zcorr_list_concatenated).squeeze()
@@ -146,7 +318,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     
     zcorr_list_concatenated_norm = (zcorr_list_concatenated - min_zcorr_vals[:,np.newaxis])/(max_zcorr_vals-min_zcorr_vals)[:,np.newaxis]
     hw = zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) - np.argmax(zcorr_list_concatenated_norm>.5,1)
-    z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) + np.argmax(zcorr_list_concatenated_norm>.5,1))/2
+    z_with_hw = (zcorr_list_concatenated_norm.shape[1]-np.argmax(zcorr_list_concatenated_norm[:,::-1]>.5,1) + np.argmax(zcorr_list_concatenated_norm>.5,1))/2 + session_zoffset_list_concatenated
     
     if minimum_contrast is None:
         minimum_contrast = np.percentile(contrast,90)/2
@@ -180,7 +352,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     
     ax_mean_intensity.plot(x,mean_intensity_list,'g-')
     
-    ax_zz.plot(x, np.argmax(zcorr_list_concatenated.squeeze(),1),'r-',label = 'Z offset')
+    ax_zz.plot(x, np.argmax(zcorr_list_concatenated.squeeze(),1)+session_zoffset_list_concatenated,'r-',label = 'Z offset')
     ax_zz.plot(x, z_with_hw,'y-',label = 'Z offset with halfwidth')
     ax_zz.plot([x[0],x[-1]],[median_z_value-acceptable_z_range]*2,'r--')
     ax_zz.plot([x[0],x[-1]],[median_z_value+acceptable_z_range]*2,'r--',label = 'Acceptable Z offsets for segmentation')
@@ -232,7 +404,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             max_zcorr_vals = np.max(zcorr,1)
             min_zcorr_vals = np.min(zcorr,1)
             contrast = max_zcorr_vals/min_zcorr_vals
-            median_z_session = np.median(np.argmax(zcorr,1))
+            median_z_session = np.median(np.argmax(zcorr,1)) +session_data_dict[session]['session_z_offfset']
             
             
             if np.percentile(contrast,10)<minimum_contrast:
@@ -449,45 +621,4 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         imgs_all.append(texted_image)
     tifffile.imsave(os.path.join(FOV_dir,'session_meanimages.tiff'),imgs_all)
     #%% register each session to every z-stack
-    if correlte_z_stacks:
-        zstack_names = os.listdir(os.path.join(FOV_dir,'Z-stacks'))
-        stacks_dict = {}
-        for zstack_name in np.sort(zstack_names):
-            if '.tif' in zstack_name:
-                stack = tifffile.imread(os.path.join(FOV_dir,'Z-stacks',zstack_name))
-                stacks_dict[zstack_name[:-4]]= stack    
-        
-        
-        ops['maxregshift'] = .3
-        session_zcorrs = []
-        stack_zcorrs = []
-        for stack in stacks_dict.keys():
-            ops_orig, zcorr_orig = registration.zalign.compute_zpos_single_frame(stacks_dict[stack], np.asarray(imgs_all), ops)
-            session_zcorrs.append(zcorr_orig)
-            stack_zcorr_now = []
-            for stack_ in stacks_dict.keys():
-                ops_orig, zcorr_orig = registration.zalign.compute_zpos_single_frame(stacks_dict[stack], stacks_dict[stack_], ops)
-                stack_zcorr_now.append(zcorr_orig)
-            stack_zcorrs.append(stack_zcorr_now)
-            #%%
-        sessions_real = []       
-        for i,session in enumerate(sessions):
-            if 'z-stack' in session.lower() or '.' in session:
-                continue
-            sessions_real.append(session)
-        fig = plt.figure(figsize = [20,20])
-        for i,(stack,zcorr,stack_zcorr) in enumerate(zip(stacks_dict.keys(),session_zcorrs,stack_zcorrs)):
-            ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+1)
-            max_zcorr_vals = np.max(zcorr,0)
-            min_zcorr_vals = np.min(zcorr,0)
-            zcorr_norm = (zcorr - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
-            ax_now.imshow(zcorr_norm,aspect = 'auto')
-            ax_now.set_title(stack)
-            ax_now.set_xticks(np.arange(zcorr.shape[1]))
-            ax_now.set_xticklabels(sessions_real)
-            for i_zstack,(stack_image,stack_2_name) in enumerate(zip(stack_zcorr,stacks_dict.keys())):
-                ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+i_zstack+2)
-                ax_now.imshow(stack_image,aspect = 'auto')
-                ax_now.set_xlabel(stack_2_name)
-                ax_now.set_ylabel(stack)
-        fig.savefig(os.path.join(FOV_dir,'Z-positions.pdf'), format="pdf")   
+   
