@@ -219,7 +219,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         
         z_stack_name = s2p_params['z_stack_name']
         if reference_z_stack_name is not None:
-            z_offset += z_stack_corr_dict[z_stack_name]['stacks_offsets'][reference_z_stack_name]
+            z_offset += z_stack_corr_dict[z_stack_name[:-4]]['stacks_offsets'][reference_z_stack_name[:-4]]
         reference_z_stack_name = z_stack_name
             
         new_session_idx.append(trial_i)
