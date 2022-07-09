@@ -70,7 +70,8 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             print('calculating f0 for {}'.format(session))
             f0_offsets = []
             for cell_idx in range(F.shape[0]):
-                #cell_idx =445
+                #%
+                #cell_idx =460
                 f = F[cell_idx,:]
                 sample_rate = 20
                 window_t = 1 #s
@@ -100,9 +101,27 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 F0[cell_idx,:] = f0
                 Fvar[cell_idx,:] = fvar
                 dff = (f-f0)/f0
-                c,b = np.histogram(dff,np.arange(-1,2,.05))
+                #%
+                f_ = []
+                f0_ = []
+                for i in np.where(stds[:int(len(stds)/2)]<np.percentile(stds[:int(len(stds)/2)],20))[0]: # polish dff on the lower 20 percent of F values
+                    f_.append(f[starts[i]:starts[i]+window])
+                    f0_.append(f0[starts[i]:starts[i]+window])
+                f_ = np.concatenate(f_)
+                f0_ = np.concatenate(f0_)
+                dff_ = (f_-f0_)/f0_
+                
+                #%
+                
+                c,b = np.histogram(dff_,np.arange(-2,2,.05))
+                b=np.mean([b[1:],b[:-1]],0)
+                needed = b>-.5
+                c = c[needed]
+                b=b[needed]
+                #%
                 f0_offsets.append(b[np.argmax(c)])
-            
+                
+                    
                 #%
             F0 = F0*(np.median(f0_offsets)+1)
             np.save(os.path.join(FOV_dir,session,'F0.npy'), F0)
