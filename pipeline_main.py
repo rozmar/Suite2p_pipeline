@@ -60,7 +60,7 @@ if resegment_cells or correlte_z_stacks:
                           setup = setup,
                           fov = fov,
                           minimum_contrast = 3,
-                          acceptable_z_range = 3,
+                          acceptable_z_range = 1,
                           segment_cells = resegment_cells,
                           correlte_z_stacks =correlte_z_stacks) 
 
