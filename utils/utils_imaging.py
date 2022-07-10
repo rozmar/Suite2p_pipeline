@@ -622,7 +622,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
                                              smooth_sigma=1)
         ymax, xmax, cmax = rigid.phasecorr(data=np.complex64(np.float32(np.asarray([refImg]*2)) * maskMul + maskOffset),
                                            cfRefImg=cfRefImg,
-                                           maxregshift=.3,
+                                           maxregshift=.1,
                                            smooth_sigma_time=0)
         refImg = rigid.shift_frame(frame=refImg, dy=ymax[0], dx=xmax[0])
         
