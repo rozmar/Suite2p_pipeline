@@ -583,7 +583,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         
         # Run the ECC algorithm. The results are stored in warp_matrix.
         print('calculating rotation')
-        (cc, warp_matrix) = cv2.findTransformECCi(np.asarray(refImg_old,np.float32),np.asarray(refImg,np.float32),warp_matrix, warp_mode, criteria)
+        (cc, warp_matrix) = cv2.findTransformECC(np.asarray(refImg_old,np.float32),np.asarray(refImg,np.float32),warp_matrix, warp_mode, criteria)
         
         sx = np.sqrt(warp_matrix[0,0]**2+warp_matrix[1,0]**2) 
         sy = np.sqrt(warp_matrix[0,1]**2+warp_matrix[1,1]**2)
