@@ -13,7 +13,7 @@ import tifffile
 
 
 def correlate_z_stacks(FOV_dir):
-
+#%%
     try:
         binned_movies_dict = np.load(os.path.join(FOV_dir,'session_mean_images.npy'),allow_pickle = True).tolist()
     except:
@@ -82,7 +82,7 @@ def correlate_z_stacks(FOV_dir):
             stack_zcorr_now.append(zcorr_orig)
         stack_zcorrs.append(stack_zcorr_now)
     #% calculate offsets
-    from scipy import interpolate
+
     #stack_shift_list = []
     for zstack_1 in z_stack_corr_dict.keys():
         print(zstack_1)
@@ -97,10 +97,11 @@ def correlate_z_stacks(FOV_dir):
             max_zcorr_vals = np.max(matrix,0)
             min_zcorr_vals = np.min(matrix,0)
             matrix = (matrix - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
-            f = interpolate.interp2d(np.arange(matrix.shape[0]), np.arange(matrix.shape[1]), matrix, kind='linear')
-            matrix = f(np.arange(0,matrix.shape[0],.1), np.arange(0,matrix.shape[1],.1))
+            f = scipy.interpolate.interp2d(np.arange(matrix.shape[1]), np.arange(matrix.shape[0]), matrix, kind='linear')
+            matrix = f(np.arange(0,matrix.shape[1],.1), np.arange(0,matrix.shape[0],.1))
             matrix = matrix/np.sum(matrix)
            # asasda
+           #%%
             offset_list = []
             loss_list = []
             sigma_list = [0,10,20,30,50,100,150,200,300]
@@ -126,6 +127,7 @@ def correlate_z_stacks(FOV_dir):
             z_stack_corr_dict[zstack_1]['stacks_offsets'][zstack_2]=offset_list[idx]
             z_stack_corr_dict[zstack_1]['stacks_loss'][zstack_2]=loss_list[idx]
             z_stack_corr_dict[zstack_1]['stacks_sigma'][zstack_2]=sigma_list[idx]/10
+            #%%
     np.save(os.path.join(FOV_dir,'z_stack_correlations.npy'),z_stack_corr_dict)
 
         #%
@@ -163,7 +165,7 @@ def correlate_z_stacks(FOV_dir):
             ax_now.set_title('{} offset {:.2f} loss {} sigma'.format(z_stack_corr_dict[stack]['stacks_offsets'][stack_2_name],
                                                               round(z_stack_corr_dict[stack]['stacks_loss'][stack_2_name],1),
                                                               z_stack_corr_dict[stack]['stacks_sigma'][stack_2_name]))
-            #%
+            #%%
     fig.savefig(os.path.join(FOV_dir,'Z-positions.pdf'), format="pdf")
 
 def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
@@ -178,7 +180,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                segment_cells = False,
                correlte_z_stacks = False):
     # TODO these variables are hard-coded
-    import cv2
+   
     use_cellpose = False
     photostim_name_list = ['slm','stim','file','photo']
     blacklist_for_binned_movie = {'BCI_26':['060622']}
@@ -219,7 +221,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         
         z_stack_name = s2p_params['z_stack_name']
         if reference_z_stack_name is not None:
-            z_offset += z_stack_corr_dict[z_stack_name[:-4]]['stacks_offsets'][reference_z_stack_name[:-4]]
+            z_offset -= z_stack_corr_dict[z_stack_name[:-4]]['stacks_offsets'][reference_z_stack_name[:-4]]
         reference_z_stack_name = z_stack_name
             
         new_session_idx.append(trial_i)
