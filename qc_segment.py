@@ -154,7 +154,7 @@ def correlate_z_stacks(FOV_dir):
         ax_now.set_ylabel(stack)
         
         #
-        ax_now.set_xticks(np.arange(zcorr.shape[1]))
+        ax_now.set_xticks(np.arange(zcorr_norm.shape[1]))
         ax_now.set_xticklabels(sessions_real)
         for i_zstack,(stack_image,stack_2_name) in enumerate(zip(stack_zcorr,stacks_dict.keys())):
             ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+i_zstack+2)
