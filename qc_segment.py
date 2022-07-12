@@ -142,7 +142,6 @@ def correlate_z_stacks(FOV_dir):
         sessions_real.append(session)
     fig = plt.figure(figsize = [20,20])
     for i,(stack,zcorr,stack_zcorr) in enumerate(zip(stacks_dict.keys(),session_zcorrs,stack_zcorrs)): 
-        if len(zcorr)
         zcorr = zcorr.T
         ax_now = fig.add_subplot(len(session_zcorrs),len(stack_zcorr)+1,(i)*(len(stack_zcorr)+1)+1)
         max_zcorr_vals = np.max(zcorr,0)
