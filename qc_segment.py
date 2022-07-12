@@ -149,7 +149,7 @@ def correlate_z_stacks(FOV_dir):
         try:
             zcorr_norm = (zcorr - min_zcorr_vals[np.newaxis,:])/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
         except: #single session
-            zcorr_norm = (zcorr - min_zcorr_vals)/(max_zcorr_vals-min_zcorr_vals)
+            zcorr_norm = (zcorr - min_zcorr_vals)/(max_zcorr_vals-min_zcorr_vals)[np.newaxis,:]
         ax_now.imshow(zcorr_norm,aspect = 'auto')
         ax_now.set_ylabel(stack)
         
