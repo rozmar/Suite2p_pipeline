@@ -257,6 +257,7 @@ def register_zstack(source_tiff,target_movie_directory):
                   'smooth_sigma':0.5, # microns
                   'smooth_sigma_time':0, #seconds,
                   }
+    
     tiff_name = os.path.basename(source_tiff)
     
     Path(target_movie_directory).mkdir(parents = True,exist_ok = True)
@@ -265,20 +266,33 @@ def register_zstack(source_tiff,target_movie_directory):
     
     
     metadata = extract_scanimage_metadata(reordered_tiff)
+
     nplanes = int(metadata['metadata']['hStackManager']['numSlices'])
-    
-    
+    if '[' in metadata['metadata']['hChannels']['channelSave']:
+        nchannels= 2
+    else:
+        nchannels = 1
+
     
     
     tiff_orig = tifffile.imread(reordered_tiff)
     
     #%
-    imgperplane = tiff_orig.shape[1]
-    tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1],tiff_orig.shape[2],tiff_orig.shape[3]],np.int16)
-    for slice_i, slicenow in enumerate(tiff_orig):
-        for img_i, imgnow in enumerate(slicenow):
-            tiff_reordered[slice_i+img_i*nplanes,:,:] = imgnow
-            
+    
+    if nchannels == 1:
+        imgperplane = tiff_orig.shape[1]
+        tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1],tiff_orig.shape[2],tiff_orig.shape[3]],np.int16)
+        for slice_i, slicenow in enumerate(tiff_orig):
+            for img_i, imgnow in enumerate(slicenow):
+                tiff_reordered[slice_i+img_i*nplanes,:,:] = imgnow
+    else:
+        imgperplane = tiff_orig.shape[1]
+        tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1]*tiff_orig.shape[2],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16)
+        for slice_i, slicenow in enumerate(tiff_orig):
+            for img_i, imgnow in enumerate(slicenow):
+                for ch_i, ch_imgnow in enumerate(imgnow):
+                    tiff_reordered[img_i*nplanes*nchannels+slice_i*nchannels+ch_i,:,:] = ch_imgnow
+ 
     
     
     tifffile.imsave(reordered_tiff,tiff_reordered)
