@@ -49,10 +49,16 @@ def extract_traces_core(subject,
         ops['batch_size']=250
         ops['nframes'] = sum(ops['nframes_list'])
         ops['reg_file'] = os.path.join(FOV_dir,session,'data.bin')
+        if 'reg_file_chan2' in ops:
+            ops['reg_file_chan2'] = os.path.join(FOV_dir,session,'data_chan2.bin')
         print('extracting traces from {}'.format(session))
         F, Fneu, F_chan2, Fneu_chan2, ops = extract_traces_from_masks(ops, cell_masks, neuropil_masks)
         np.save(os.path.join(FOV_dir,session,'F.npy'), F)
+        
         np.save(os.path.join(FOV_dir,session,'Fneu.npy'), Fneu)
+        if 'reg_file_chan2' in ops:
+            np.save(os.path.join(FOV_dir,session,'F_chan2.npy'), F_chan2)
+            np.save(os.path.join(FOV_dir,session,'Fneu_chan2.npy'), Fneu_chan2)
     else:
         F = np.load(os.path.join(FOV_dir,session,'F.npy'))
         Fneu = np.load(os.path.join(FOV_dir,session,'Fneu.npy'))
