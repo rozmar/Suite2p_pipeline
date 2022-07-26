@@ -4,6 +4,25 @@ import os
 import numpy as np
 from suite2p.extraction.extract import extract_traces_from_masks
 
+def nan_helper(y):
+    """Helper to handle indices and logical indices of NaNs.
+
+    Input:
+        - y, 1d numpy array with possible NaNs
+    Output:
+        - nans, logical indices of NaNs
+        - index, a function, with signature indices= index(logical_indices),
+          to convert logical indices of NaNs to 'equivalent' indices
+    Example:
+        >>> # linear interpolation of NaNs
+        >>> nans, x= nan_helper(y)
+        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
+        
+    Source:
+        https://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array
+    """
+
+    return np.isnan(y), lambda z: z.nonzero()[0]
     
 def rollingfun(y, window = 10, func = 'mean'):
     """
@@ -33,6 +52,69 @@ def rollingfun(y, window = 10, func = 'mean'):
     else:
         print('undefinied funcion in rollinfun')
     return out    
+
+def remove_stim_artefacts(F,Fneu,frames_per_file):
+    """
+    removing stimulation artefacts with linear interpolation
+    and nan-ing out tripped PMT traces
+
+    Parameters
+    ----------
+    F : matrix of float
+        Fluorescence of ROIs
+    Fneu : matrix of float
+        fluorescence of neuropil
+    frames_per_file : list of int
+        # of frames in each file (where the photostim happens)
+
+    Returns
+    -------
+    F : matrix of float
+        corrected fluorescence of ROIs
+    Fneu : matrix of float
+        corrected fluorescence of neuropil
+
+    """
+    artefact_indices = []
+    fneu_mean = np.mean(Fneu,0)
+    
+    for stim_idx in np.concatenate([[0],np.cumsum(frames_per_file)[:-1]]):
+        idx_now = []
+        if stim_idx>0 and fneu_mean[stim_idx-2]*1.1<fneu_mean[stim_idx-1]:
+            idx_now.append(stim_idx-1)
+        idx_now.append(stim_idx)
+        if stim_idx<len(fneu_mean)-2 and fneu_mean[stim_idx+2]*1.1<fneu_mean[stim_idx+1]:
+            idx_now.append(stim_idx+1)
+        artefact_indices.append(idx_now)
+    
+    f_std = np.std(F,0)
+    pmt_off_indices = f_std<np.median(f_std)-3*np.std(f_std)
+    pmt_off_edges = np.diff(np.concatenate([pmt_off_indices,[0]]))
+    pmt_off_indices[pmt_off_edges!=0] = 1 #dilate 1
+    pmt_off_edges = np.diff(np.concatenate([[0],pmt_off_indices,[0]]))
+    starts = np.where(pmt_off_edges==1)[0]
+    ends = np.where(pmt_off_edges==-1)[0]
+    lengths = ends-starts
+    for idx in np.where(lengths<=10)[0]:
+        pmt_off_indices[starts[idx]:ends[idx]]=0
+    
+    
+    F_ = F.copy()
+    F_[:,np.concatenate(artefact_indices)]=np.nan
+    for f in F_:
+        nans, x= nan_helper(f)
+        f[nans]= np.interp(x(nans), x(~nans), f[~nans])
+        f[pmt_off_indices] = np.nan
+    F = F_
+    
+    Fneu_ = Fneu.copy()
+    Fneu_[:,np.concatenate(artefact_indices)]=np.nan
+    for f in Fneu_:
+        nans, x= nan_helper(f)
+        f[nans]= np.interp(x(nans), x(~nans), f[~nans])
+        f[pmt_off_indices] = np.nan
+    Fneu = Fneu_
+    return F, Fneu
     
 def extract_traces_core(subject,
                         FOV_dir,
@@ -49,10 +131,11 @@ def extract_traces_core(subject,
     if photostim:
         session = session+'/photostim'
     if 'F{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
-            
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         ops['batch_size']=250
-        ops['nframes'] = sum(ops['nframes_list'])
+        if not photostim:
+            ops['nframes'] = sum(ops['nframes_list'])
+
         ops['reg_file'] = os.path.join(FOV_dir,session,'data.bin')
         if 'reg_file_chan2' in ops:
             ops['reg_file_chan2'] = os.path.join(FOV_dir,session,'data_chan2.bin')
@@ -66,8 +149,12 @@ def extract_traces_core(subject,
     else:
         F = np.load(os.path.join(FOV_dir,session,'F{}.npy'.format(roi_type)))
         Fneu = np.load(os.path.join(FOV_dir,session,'Fneu{}.npy'.format(roi_type)))
+    if photostim: # find stim artefacts and when PMT is off
+        F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])  
+            
+        #%%
     if 'F0{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
-        #%
+        #%%
         F0 = np.zeros_like(F)
         Fvar = np.zeros_like(F)
         print('calculating f0 for {}'.format(session))
@@ -125,7 +212,7 @@ def extract_traces_core(subject,
             f0_offsets.append(b[np.argmax(c)])
             
                 
-            #%
+            #%%
         F0 = F0*(np.median(f0_offsets)+1)
         np.save(os.path.join(FOV_dir,session,'F0{}.npy'.format(roi_type)), F0)
         np.save(os.path.join(FOV_dir,session,'Fvar{}.npy'.format(roi_type)), Fvar)
