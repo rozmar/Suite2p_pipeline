@@ -42,8 +42,13 @@ def extract_traces_core(subject,
                         cell_masks,
                         neuropil_masks,
                         bpod_path,
+                        photostim =False,
+                        roi_type = '',
                         ):
-    if 'F.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+
+    if photostim:
+        session = session+'/photostim'
+    if 'F{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
             
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         ops['batch_size']=250
@@ -53,16 +58,15 @@ def extract_traces_core(subject,
             ops['reg_file_chan2'] = os.path.join(FOV_dir,session,'data_chan2.bin')
         print('extracting traces from {}'.format(session))
         F, Fneu, F_chan2, Fneu_chan2, ops = extract_traces_from_masks(ops, cell_masks, neuropil_masks)
-        np.save(os.path.join(FOV_dir,session,'F.npy'), F)
-        
-        np.save(os.path.join(FOV_dir,session,'Fneu.npy'), Fneu)
+        np.save(os.path.join(FOV_dir,session,'F{}.npy'.format(roi_type)), F)
+        np.save(os.path.join(FOV_dir,session,'Fneu{}.npy'.format(roi_type)), Fneu)
         if 'reg_file_chan2' in ops:
-            np.save(os.path.join(FOV_dir,session,'F_chan2.npy'), F_chan2)
-            np.save(os.path.join(FOV_dir,session,'Fneu_chan2.npy'), Fneu_chan2)
+            np.save(os.path.join(FOV_dir,session,'F_chan2{}.npy'.format(roi_type)), F_chan2)
+            np.save(os.path.join(FOV_dir,session,'Fneu_chan2{}.npy'.format(roi_type)), Fneu_chan2)
     else:
-        F = np.load(os.path.join(FOV_dir,session,'F.npy'))
-        Fneu = np.load(os.path.join(FOV_dir,session,'Fneu.npy'))
-    if 'F0.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+        F = np.load(os.path.join(FOV_dir,session,'F{}.npy'.format(roi_type)))
+        Fneu = np.load(os.path.join(FOV_dir,session,'Fneu{}.npy'.format(roi_type)))
+    if 'F0{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         #%
         F0 = np.zeros_like(F)
         Fvar = np.zeros_like(F)
@@ -123,11 +127,11 @@ def extract_traces_core(subject,
                 
             #%
         F0 = F0*(np.median(f0_offsets)+1)
-        np.save(os.path.join(FOV_dir,session,'F0.npy'), F0)
-        np.save(os.path.join(FOV_dir,session,'Fvar.npy'), Fvar)
+        np.save(os.path.join(FOV_dir,session,'F0{}.npy'.format(roi_type)), F0)
+        np.save(os.path.join(FOV_dir,session,'Fvar{}.npy'.format(roi_type)), Fvar)
     else:
-        F0 = np.load(os.path.join(FOV_dir,session,'F0.npy'))
-        Fvar = np.load(os.path.join(FOV_dir,session,'Fvar.npy'))
+        F0 = np.load(os.path.join(FOV_dir,session,'F0{}.npy'.format(roi_type)))
+        Fvar = np.load(os.path.join(FOV_dir,session,'Fvar{}.npy'.format(roi_type)))
     
 # =============================================================================
 #         #%%
@@ -141,7 +145,7 @@ def extract_traces_core(subject,
 #             f0_offsets.append(b[np.argmax(c)])
 # =============================================================================
     #%%
-    if 'channel_offset.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+    if 'channel_offset{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         #%%
         # this script estimates the error in scanimage baselne measurement
         # due to inaccurate values, the dF/F amplitudes of low F0 cells
@@ -199,18 +203,18 @@ def extract_traces_core(subject,
         ax_hacked_var.set_ylabel('std/mean')
         f0_correction_dict = {'channel_offset':f0_correction}
         #%%
-        fig.savefig(os.path.join(FOV_dir,session,'F0_offset.pdf'), format="pdf")
+        fig.savefig(os.path.join(FOV_dir,session,'F0_offset{}.pdf'.format(roi_type)), format="pdf")
         plt.close()
-        np.save(os.path.join(FOV_dir,session,'channel_offset.npy'), f0_correction_dict,allow_pickle=True)
+        np.save(os.path.join(FOV_dir,session,'channel_offset{}.npy'.format(roi_type)), f0_correction_dict,allow_pickle=True)
     else:
-        f0_correction_dict = np.load(os.path.join(FOV_dir,session,'channel_offset.npy'),allow_pickle=True).tolist()
+        f0_correction_dict = np.load(os.path.join(FOV_dir,session,'channel_offset{}.npy'.format(roi_type)),allow_pickle=True).tolist()
     #%%
 # =============================================================================
 #         F+=f0_correction_dict['channel_offset']
 #         F0+=f0_correction_dict['channel_offset']
 #         Fneu+=f0_correction_dict['channel_offset']
 # =============================================================================
-    if 'neuropil_contribution.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+    if 'neuropil_contribution{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         neuropil_dict = {}
         needed_idx = rollingfun(np.mean(F,0),20,'min')> np.median(rollingfun(np.mean(F,0),20,'min'))/2
         neuropil_dict['good_indices'] = needed_idx
@@ -275,12 +279,12 @@ def extract_traces_core(subject,
         neuropil_dict['r_neu_global'] = np.asarray(slopes_mean_fneu)
         neuropil_dict['neuropil_contribution_to_f0_local'] = np.asarray(neuropil_contamination)
         neuropil_dict['neuropil_contribution_to_f0_global'] = np.asarray(neuropil_contamination_mean_fneu)
-        np.save(os.path.join(FOV_dir,session,'neuropil_contribution.npy'), neuropil_dict,allow_pickle=True)
+        np.save(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)), neuropil_dict,allow_pickle=True)
     else:
-        neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution.npy'),allow_pickle=True).tolist()
+        neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
       
     
-    if 'photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '': # photon counts only for the big ROIs
         #%%
         plot_stuff = True
         stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
@@ -400,20 +404,25 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                    subject = 'BCI_26',
                    setup = 'Bergamo-2P-Photostim',
                    fov = 'FOV_06',
-                   overwrite = True):
+                   overwrite = True,
+                   roi_types = [''],
+                   photostim = False):
     FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
     sessions=os.listdir(FOV_dir)  
-    cell_masks = np.load(os.path.join(FOV_dir, 'cell_masks.npy'), allow_pickle = True).tolist()
-    neuropil_masks = np.load(os.path.join(FOV_dir, 'neuropil_masks.npy'), allow_pickle = True).tolist()
-    for session in sessions:
-        if 'z-stack' in session.lower() or '.' in session:
-            continue
-        extract_traces_core(subject,
-                            FOV_dir,
-                            session,
-                            setup,
-                            overwrite,
-                            cell_masks,
-                            neuropil_masks,
-                            bpod_path)
+    for roi_type in roi_types:
+        cell_masks = np.load(os.path.join(FOV_dir, 'cell_masks{}.npy'.format(roi_type)), allow_pickle = True).tolist()
+        neuropil_masks = np.load(os.path.join(FOV_dir, 'neuropil_masks{}.npy'.format(roi_type)), allow_pickle = True).tolist()
+        for session in sessions:
+            if 'z-stack' in session.lower() or '.' in session:
+                continue
+            extract_traces_core(subject,
+                                FOV_dir,
+                                session,
+                                setup,
+                                overwrite,
+                                cell_masks,
+                                neuropil_masks,
+                                bpod_path,
+                                photostim,
+                                roi_type)
         
