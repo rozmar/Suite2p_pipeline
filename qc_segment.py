@@ -436,7 +436,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         ops['xrange'] = [0, ops['Lx']]
         ops['yrange'] = [0, ops['Ly']]
         try:
-            del ops['chan2_thres']
+            del ops['meanImg_chan2']
         except:
             pass
         ops, stat = detect(ops, classfile=None, mov = binned_movie_concatenated)
