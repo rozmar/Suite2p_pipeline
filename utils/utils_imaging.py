@@ -435,14 +435,11 @@ def register_trial(target_movie_directory,file, delete_raw = False):
 # =============================================================================
     if 'rotation_matrix' in meanimage_dict.keys():
         ops['rotation_matrix'] = meanimage_dict['rotation_matrix']
-    ops = run_s2p(ops)
-# =============================================================================
-#     try:
-#         ops = run_s2p(ops)
-#     except:
-#         print('error in registering trial, skipping this one')
-#         error =True
-# =============================================================================
+    try:
+        ops = run_s2p(ops)
+    except:
+        print('error in registering trial, skipping this one')
+        error =True
     if delete_raw:
         os.remove(tiffs_now[0]) # delete the raw tiff file
     #%%
