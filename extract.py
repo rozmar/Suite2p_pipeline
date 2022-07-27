@@ -376,7 +376,7 @@ def extract_traces_core(subject,
         neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
       
     
-    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '': # photon counts only for the big ROIs
+    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '' and not photostim: # photon counts only for the big ROIs
         #%%
         plot_stuff = True
         stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
