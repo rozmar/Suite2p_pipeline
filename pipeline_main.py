@@ -14,7 +14,7 @@ correlte_z_stacks = 'true' in sys.argv[6].lower()
 overwrite_export = 'true' in sys.argv[7].lower()
 register_photostim = 'true' in sys.argv[8].lower()
 export_photostim = 'true' in sys.argv[9].lower()
-export_photostim_apical_dendrites = 'true' in sys.argv[9].lower()
+export_photostim_apical_dendrites = 'true' in sys.argv[10].lower()
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
