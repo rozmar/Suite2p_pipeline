@@ -4,6 +4,8 @@ import os
 import numpy as np
 from suite2p.extraction.extract import extract_traces_from_masks
 
+from utils import utils_io
+
 def nan_helper(y):
     """Helper to handle indices and logical indices of NaNs.
 
@@ -115,7 +117,18 @@ def remove_stim_artefacts(F,Fneu,frames_per_file):
         f[pmt_off_indices] = np.nan
     Fneu = Fneu_
     return F, Fneu
-    
+
+def extract_photostim_groups(): # get photostim targets and calculate the actual coordinates
+#%%
+    raw_movie_basedir = '/mnt/Data/Calcium_imaging/raw/KayvonScope/'
+    subject = 'BCI_35'
+    FOV_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim/BCI_35/FOV_05/'
+    session = '072122'
+    raw_movie_directory = os.path.join(raw_movie_basedir,subject,session)
+    photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
+    pass
+    #%%
+        
 def extract_traces_core(subject,
                         FOV_dir,
                         session,
@@ -199,10 +212,14 @@ def extract_traces_core(subject,
             dff = (f-f0)/f0
             #%
             f_ = []
-            f0_ = []
-            for i in np.where(stds[:int(len(stds)/2)]<np.percentile(stds[:int(len(stds)/2)],20))[0]: # polish dff on the lower 20 percent of F values
-                f_.append(f[starts[i]:starts[i]+window])
-                f0_.append(f0[starts[i]:starts[i]+window])
+            pecentile = 20
+            while len(f_)<10:
+                f_ = []
+                f0_ = []
+                for i in np.where(stds[:int(len(stds)/2)]<np.percentile(stds[:int(len(stds)/2)],pecentile))[0]: # polish dff on the lower 20 percent of F values
+                    f_.append(f[starts[i]:starts[i]+window])
+                    f0_.append(f0[starts[i]:starts[i]+window])
+                pecentile+=5
             f_ = np.concatenate(f_)
             f0_ = np.concatenate(f0_)
             dff_ = (f_-f0_)/f0_
