@@ -377,12 +377,16 @@ def extract_traces_core(subject,
         neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
       
     
-    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '' and not photostim: # photon counts only for the big ROIs
+    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '': # photon counts only for the big ROIs
         #%%
         plot_stuff = True
         stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
         photon_counts_dict = {}
-        bpod_file = os.path.join(bpod_path,setup,'{}/{}-bpod_zaber.npy'.format(subject,session))
+        if photostim:
+            bpod_file = os.path.join(bpod_path,setup,'{}/{}-bpod_zaber.npy'.format(subject,session[:session.find('/')]))
+            
+        else:
+            bpod_file = os.path.join(bpod_path,setup,'{}/{}-bpod_zaber.npy'.format(subject,session))
         bpod_data=np.load(bpod_file,allow_pickle=True).tolist()
         tiff_idx = 0 #np.argmax((np.asarray(bpod_data['scanimage_file_names'])=='no movie for this trial')==False)
         while str(bpod_data['scanimage_file_names'][tiff_idx]) =='no movie for this trial':
