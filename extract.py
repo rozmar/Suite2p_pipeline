@@ -211,28 +211,28 @@ def extract_traces_core(subject,
             Fvar[cell_idx,:] = fvar
             dff = (f-f0)/f0
             #%
-            f_ = []
-            pecentile = 20
-            while len(f_)<10:
+            try:
                 f_ = []
                 f0_ = []
-                for i in np.where(stds[:int(len(stds)/2)]<np.percentile(stds[:int(len(stds)/2)],pecentile))[0]: # polish dff on the lower 20 percent of F values
+                for i in np.where(stds[:int(len(stds)/2)]<np.percentile(stds[:int(len(stds)/2)],20))[0]: # polish dff on the lower 20 percent of F values
                     f_.append(f[starts[i]:starts[i]+window])
                     f0_.append(f0[starts[i]:starts[i]+window])
-                pecentile+=5
-            f_ = np.concatenate(f_)
-            f0_ = np.concatenate(f0_)
-            dff_ = (f_-f0_)/f0_
-            
-            #%
-            
-            c,b = np.histogram(dff_,np.arange(-2,2,.05))
-            b=np.mean([b[1:],b[:-1]],0)
-            needed = b>-.5
-            c = c[needed]
-            b=b[needed]
-            #%
-            f0_offsets.append(b[np.argmax(c)])
+                f_ = np.concatenate(f_)
+                f0_ = np.concatenate(f0_)
+                dff_ = (f_-f0_)/f0_
+                
+                #%
+                
+                c,b = np.histogram(dff_,np.arange(-2,2,.05))
+                b=np.mean([b[1:],b[:-1]],0)
+                needed = b>-.5
+                c = c[needed]
+                b=b[needed]
+                #%
+                f0_offsets.append(b[np.argmax(c)])
+            except:
+                print('f0 estimation could not be corrected for roi {}'.format(cell_idx))
+                f0_offsets.append(0)
             
                 
             #%%
