@@ -130,7 +130,12 @@ def extract_traces_core(subject,
 
     if photostim:
         session = session+'/photostim'
+    try:
+        os.listdir(os.path.join(FOV_dir,session))
+    except:
+        return
     if 'F{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+        
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         ops['batch_size']=250
         if not photostim:
