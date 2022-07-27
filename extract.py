@@ -155,6 +155,7 @@ def extract_traces_core(subject,
         F = np.load(os.path.join(FOV_dir,session,'F{}.npy'.format(roi_type)))
         Fneu = np.load(os.path.join(FOV_dir,session,'Fneu{}.npy'.format(roi_type)))
     if photostim: # find stim artefacts and when PMT is off
+        ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])  
             
         #%%
