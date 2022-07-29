@@ -224,7 +224,7 @@ def average_zstack(source_tiff, target_movie_directory):
             
             tiff_orig = tifffile.imread(source_tiff)
             if '[' in metadata['metadata']['hChannels']['channelSave']:
-               tiff_out = np.mean(tiff_orig[:,:,0,:,:],1)  # only channel 1
+               tiff_out = np.mean(tiff_orig[:,:,0,:,:],1).squeeze() # only channel 1
             else:
                 tiff_out = np.mean(tiff_orig,1)
            
