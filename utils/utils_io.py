@@ -221,13 +221,17 @@ def organize_photostim_files(source_movie_directory):
     uniquebasenames = np.asarray(uniquebasenames)[tokeep==1]    
     order = np.argsort(start_times)  
     fnames_new = list()
+    basenames_new = list()
     for idx in order:
         fnames_new.append(fnames[basenames==uniquebasenames[idx]])
+        basenames_new.append(basenames[basenames==uniquebasenames[idx]])
     fnames = np.concatenate(fnames_new)
+    basenames = np.concatenate(basenames_new)
     
     out_dict = {'base_names':uniquebasenames,
                 'base_metadata':metadata_list,
-                'file_order':fnames}
+                'file_order':fnames,
+                'basename_order':basenames}
     return out_dict
     
     
@@ -516,6 +520,8 @@ def concatenate_suite2p_files(target_movie_directory):
                 json.dump(filelist_dict, data_file, indent=2)
             #np.save(concatenated_movie_ops,ops_concatenated)  
             os.system('rm {}'.format(sourcefile))
+            if os.path.exists(concatenated_movie_file_chan2):
+                os.system('rm {}'.format(sourcefile_chan2))
                     
                     #break
 # =============================================================================
