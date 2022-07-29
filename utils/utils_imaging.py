@@ -223,9 +223,11 @@ def average_zstack(source_tiff, target_movie_directory):
         if metadata['metadata']['hStackManager']['enable'] =='true' and int(metadata['metadata']['hStackManager']['framesPerSlice'])>1 and int(metadata['metadata']['hScan2D']['logAverageFactor'])<int(metadata['metadata']['hStackManager']['framesPerSlice']):
             
             tiff_orig = tifffile.imread(source_tiff)
-            tiff_out = np.mean(tiff_orig,1)
             if '[' in metadata['metadata']['hChannels']['channelSave']:
-                tiff_out = tiff_out[::2,:,:] # saves only channel1
+               tiff_out = np.mean(tiff_orig[:,:,0,:,:],1)  # only channel 1
+            else:
+                tiff_out = np.mean(tiff_orig,1)
+           
             tifffile.imsave(new_tiff,tiff_out)
             print('zstack averaged and succesfully saved')
     except:
