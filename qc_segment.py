@@ -10,7 +10,7 @@ from suite2p.extraction.masks import create_masks
 from suite2p import registration
 import cv2
 import tifffile
-
+version = '1.0'
 
 def correlate_z_stacks(FOV_dir):
 #%%
@@ -488,13 +488,13 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             npix_list_somacrop_nooverlap.append(sum((s['overlap'] == False) & s['soma_crop']))
             #rois[neurpil_coord[0],neurpil_coord[1]] = .5#cell['lam']/np.sum(cell['lam'])
             idx = (s['soma_crop']==True) & (s['overlap']==False)
-            pixel_num = sum((s['overlap'] == False) & s['soma_crop'])
+            pixel_num = sum( s['soma_crop']) #(s['overlap'] == False) &
             if pixel_num>=cutoff_pixel_num[0]  and pixel_num<=cutoff_pixel_num[1]:
                 rois_good[s['ypix'][idx],s['xpix'][idx]] =s['lam'][idx]/np.sum(s['lam'][idx])*sum(idx)
                 cell_masks.append(cell_mask)
                 neuropil_masks.append(neuropil_mask)
                 stat_good.append(s)
-            else:
+            elif pixel_num<cutoff_pixel_num[0]:
                 rois_small[s['ypix'][idx],s['xpix'][idx]] =s['lam'][idx]/np.sum(s['lam'][idx])*sum(idx)
                 cell_masks_rest.append(cell_mask)
                 neuropil_masks_rest.append(neuropil_mask)
@@ -548,8 +548,8 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         ax_roisize.hist(npix_list,np.arange(0,300,5))
         ax_roisize_soma.hist(npix_list_somacrop,np.arange(0,300,5))
         ax_roisize_soma_nooverlap.hist(npix_list_somacrop_nooverlap,np.arange(0,300,5))
-        ax_roisize_soma_nooverlap.axvline(cutoff_pixel_num[0],color ='red')
-        ax_roisize_soma_nooverlap.axvline(cutoff_pixel_num[1],color ='red', label = 'pixel size cutoff')
+        ax_roisize_soma.axvline(cutoff_pixel_num[0],color ='red')
+        ax_roisize_soma.axvline(cutoff_pixel_num[1],color ='red', label = 'pixel size cutoff')
         ax_roisize_soma_nooverlap.set_xlabel('Pixel count')
         
         ax_meanimage = fig.add_subplot(2,3,1,sharex =ax_rois,sharey = ax_rois )
