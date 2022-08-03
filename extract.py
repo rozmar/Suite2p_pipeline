@@ -3,7 +3,8 @@ import scipy.ndimage as ndimage
 import os
 import numpy as np
 from suite2p.extraction.extract import extract_traces_from_masks
-
+from suite2p.registration.nonrigid import upsample_block_shifts
+import math
 from utils import utils_io
 
 def nan_helper(y):
@@ -26,6 +27,7 @@ def nan_helper(y):
 
     return np.isnan(y), lambda z: z.nonzero()[0]
     
+
 def rollingfun(y, window = 10, func = 'mean'):
     """
     rollingfun
@@ -34,7 +36,7 @@ def rollingfun(y, window = 10, func = 'mean'):
     @input:
         y = array, window, function (mean,min,max,std)
     """
-    
+    window = int(window)
     if window >len(y):
         window = len(y)-1
     y = np.concatenate([y[window::-1],y,y[:-1*window:-1]])
@@ -118,16 +120,6 @@ def remove_stim_artefacts(F,Fneu,frames_per_file):
     Fneu = Fneu_
     return F, Fneu
 
-def extract_photostim_groups(): # get photostim targets and calculate the actual coordinates
-#%%
-    raw_movie_basedir = '/mnt/Data/Calcium_imaging/raw/KayvonScope/'
-    subject = 'BCI_35'
-    FOV_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim/BCI_35/FOV_05/'
-    session = '072122'
-    raw_movie_directory = os.path.join(raw_movie_basedir,subject,session)
-    photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
-    pass
-    #%%
         
 def extract_traces_core(subject,
                         FOV_dir,
@@ -352,9 +344,12 @@ def extract_traces_core(subject,
                 stds.append(np.var(f[start:start+window]))
                 means.append(np.mean(f[start:start+window]))
                 f0_diffs.append(np.mean(f[start:start+window])-np.mean(f0[start:start+window]))
-                
             
-            needed_segments = np.where(np.asarray(f0_diffs)/np.mean(f0)<.05)[0]
+            needed_segments = []
+            df_max = .05
+            while len(needed_segments)<30:
+                needed_segments = np.where(np.asarray(f0_diffs)/np.mean(f0)<df_max)[0]
+                df_max+=.05
             f_points = []
             fneu_points = []
             fneu_mean_points = []
@@ -425,8 +420,6 @@ def extract_traces_core(subject,
             samples_averaged.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]]))#*dwelltime)
             dwell_time.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]])*dwelltime)
             #break
-        
-        
         
         p = np.polyfit(F0_mean,Fvar_mean*samples_averaged,1)
         intensity_per_photon = p[0]
