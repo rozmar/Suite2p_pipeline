@@ -490,7 +490,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             #rois[neurpil_coord[0],neurpil_coord[1]] = .5#cell['lam']/np.sum(cell['lam'])
             idx = (s['soma_crop']==True) & (s['overlap']==False)
             pixel_num = sum( s['soma_crop']) #(s['overlap'] == False) &
-            useful_pixel_num = (s['overlap'] == False) & sum( s['soma_crop']) #
+            useful_pixel_num = sum((s['overlap'] == False) & sum( s['soma_crop'])) #
             if pixel_num>=cutoff_pixel_num[0]  and pixel_num<=cutoff_pixel_num[1] and useful_pixel_num>minimum_pixel_num:
                 rois_good[s['ypix'][idx],s['xpix'][idx]] =s['lam'][idx]/np.sum(s['lam'][idx])*sum(idx)
                 cell_masks.append(cell_mask)
