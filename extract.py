@@ -385,8 +385,10 @@ def extract_traces_core(subject,
         neuropil_dict['neuropil_contribution_to_f0_local'] = np.asarray(neuropil_contamination)
         neuropil_dict['neuropil_contribution_to_f0_global'] = np.asarray(neuropil_contamination_mean_fneu)
         np.save(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)), neuropil_dict,allow_pickle=True)
-    else:
-        neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
+# =============================================================================
+#     else:
+#         neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
+# =============================================================================
       
     
     if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '' and not photostim: # photon counts only for the big ROIs
@@ -473,9 +475,11 @@ def extract_traces_core(subject,
             plt.close()
         np.save(os.path.join(FOV_dir,session,'photon_counts.npy'), photon_counts_dict,allow_pickle=True)
         
-    else:
-        photon_counts_dict = np.load(os.path.join(FOV_dir,session,'photon_counts.npy'),allow_pickle=True).tolist()
-    del photon_counts_dict, neuropil_dict, F, F0, Fneu
+# =============================================================================
+#     else:
+#         photon_counts_dict = np.load(os.path.join(FOV_dir,session,'photon_counts.npy'),allow_pickle=True).tolist()
+#     del photon_counts_dict, neuropil_dict, F, F0, Fneu
+# =============================================================================
 # =============================================================================
 #     if 'dFF_noise.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
 #         dfFnoise = np.zeros_like(F)
