@@ -316,7 +316,7 @@ def extract_traces_core(subject,
 #         F0+=f0_correction_dict['channel_offset']
 #         Fneu+=f0_correction_dict['channel_offset']
 # =============================================================================
-    if 'neuropil_contribution{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
+    if ('neuropil_contribution{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and not photostim:
         neuropil_dict = {}
         needed_idx = rollingfun(np.mean(F,0),20,'min')> np.median(rollingfun(np.mean(F,0),20,'min'))/2
         neuropil_dict['good_indices'] = needed_idx
@@ -389,7 +389,7 @@ def extract_traces_core(subject,
         neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
       
     
-    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '': # photon counts only for the big ROIs
+    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '' and not photostim: # photon counts only for the big ROIs
         #%%
         plot_stuff = True
         stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
