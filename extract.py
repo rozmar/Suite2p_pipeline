@@ -772,8 +772,9 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
 
     offset_list = np.arange(-15,5)
     direct_amplitude_list = []    
+    print('calculating offset')
     for offset in offset_list:
-        print(offset)
+        
         for key in photostim_dict.keys():
             photostim_dict[key]['counter'] = offset
         photostim_group_list = []
@@ -822,8 +823,9 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     for group_idx in range(len(group_list)):
         photostim_repeats.append(sum(np.asarray(photostim_group_list) == group_idx))
     unique_photostim_repeats = np.unique(photostim_repeats)
+    print('generating null distributions')
     for cell_index in range(len(stat)):
-        print(cell_index)
+        
         dff = DFF[cell_index,:].copy()
         s = stat[cell_index]
         distances = []
@@ -840,9 +842,9 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
             dff[np.max([0,i-1]):i+10] = np.nan
 
         for trial_i,trial_num in enumerate(unique_photostim_repeats):
-            print(trial_num)
+            #print(trial_num)
             amplitude_all = []
-            for repeat in range(1000):
+            for repeat in range(200):
                 #stim_indices = np.asarray(np.random.uniform(step_back,DFF.shape[1]-step_forward-peak_offset,trial_num),int)
                 amplitudes = []
                 while len(amplitudes)<trial_num:
