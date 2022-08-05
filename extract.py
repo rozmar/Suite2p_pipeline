@@ -120,7 +120,48 @@ def remove_stim_artefacts(F,Fneu,frames_per_file):
     Fneu = Fneu_
     return F, Fneu
 
+def align_trace_to_event(F,
+                         event_indices,
+                         frames_before,
+                         frames_after):
+    """
+    Creates an event-locked array of traces with given size
+
+    Parameters
+    ----------
+    F : matrix of float
+        sessionwise fluorescence
+    event_indices : list of int
+        indices of events (output of trial_times_to_session_indices )
+    frames_before : int
+        number of frames to keep before event
+    frames_after : int
+        number of frames to keep after event.
+
+    Returns
+    -------
+    F_aligned : matrix of float (frames * cells * trials)
+        trial-locked matrix
+
+    """
+    max_frames= frames_before+frames_after
+    F_aligned = np.ones((max_frames, F.shape[0], len(event_indices)))*np.nan
+    
+    for i, center_idx in enumerate(event_indices):
+
+        start_frame = center_idx - frames_before
+        end_frame = center_idx + frames_after
+        if end_frame > F.shape[1]:
+            end_frame = F.shape[1]
         
+        if start_frame<0: # taking care of edge at the beginning
+            missing_frames_at_beginning = np.abs(start_frame)
+            start_frame = 0
+        else:
+            missing_frames_at_beginning = 0
+        F_aligned[missing_frames_at_beginning:missing_frames_at_beginning+end_frame-start_frame, :, i] = F[:, start_frame:end_frame].T
+    return F_aligned
+
 def extract_traces_core(subject,
                         FOV_dir,
                         session,
@@ -536,4 +577,439 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                                 bpod_path,
                                 photostim,
                                 roi_type)
+def extract_photostim_groups(subject,
+                             FOV,
+                             setup,
+                             raw_movie_basedir,
+                             suite2p_basedir):
+    FOV_dir = os.path.join(suite2p_basedir,setup,subject,FOV)
+    sessions=os.listdir(FOV_dir)  
+    for session in sessions:
+        if 'z-stack' in session.lower() or '.' in session:
+            continue
+        extract_photostim_groups_core(subject, 
+                                    FOV,
+                                    session,
+                                    setup,
+                                    raw_movie_basedir,
+                                    suite2p_basedir)
+    
+def extract_photostim_groups_core(subject, #TODO write more explanation and make this script nicer
+                             FOV,
+                             session,
+                             setup,
+                             raw_movie_basedir,
+                             suite2p_basedir):
+    """
+    Extracts photostim coordinates from scanimage header.
+    Rotates it and does rigid and non-rigid registration on them to match mean image.
+    Finds where the photostim groups happen.
+    Calculates null-distribution of photostimmed amplitudes.
+    Creates a plot and saves data in a dictionary.
+
+    Parameters
+    ----------
+    subject : TYPE
+        DESCRIPTION.
+    FOV : TYPE
+        DESCRIPTION.
+    session : TYPE
+        DESCRIPTION.
+    setup : TYPE
+        DESCRIPTION.
+    raw_movie_basedir : TYPE
+        DESCRIPTION.
+    suite2p_basedir : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+
+# =============================================================================
+#     raw_movie_basedir = '/mnt/Data/Calcium_imaging/raw/KayvonScope/'
+#     suite2p_basedir = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p'
+#     subject = 'BCI_35'
+#     FOV = 'FOV_06'
+#     session = '080422'
+#     setup = 'Bergamo-2P-Photostim'   
+# =============================================================================
+    FOV_dir = os.path.join(suite2p_basedir,setup,subject,FOV)
+    use_all_ROIs = False
+    step_back = 10
+    step_forward = 20
+    baseline_length = step_back# from -step_back
+    peak_length = 10 #from peak_offset
+    peak_offset = 3##from trial start - gap
+    
+    use_overlap = False
+    min_overlap = .1
+    max_direct_distance = 30
+    part_num= 5
+    false_positive_rate = 1 #per cent
+    
+    
+    ops =  np.load(os.path.join(FOV_dir,session,'photostim','ops.npy'),allow_pickle = True).tolist()
+    meanimg_dict = np.load(os.path.join(FOV_dir,session,'mean_image.npy'),allow_pickle = True).tolist()
+    angle = -1*np.mean(np.asarray([np.arccos(meanimg_dict['rotation_matrix'][0,0]),
+                                np.arcsin(meanimg_dict['rotation_matrix'][1,0]),
+                                -1*np.arcsin(meanimg_dict['rotation_matrix'][0,1]),
+                                np.arccos(meanimg_dict['rotation_matrix'][1,1])]))
+    
+    
+    
+    F = np.load(os.path.join(FOV_dir,session,'photostim','F.npy'))
+    Fneu = np.load(os.path.join(FOV_dir,session,'photostim','Fneu.npy'))
+    F0 = np.load(os.path.join(FOV_dir,session,'photostim','F0.npy'))
+    
+    
+    
+
+    
+    stat =  np.load(os.path.join(FOV_dir,'stat.npy'),allow_pickle = True).tolist()
+    stat_rest =  np.load(os.path.join(FOV_dir,'stat_rest.npy'),allow_pickle = True).tolist()
+    
+    if use_all_ROIs:
+        F_rest = np.load(os.path.join(FOV_dir,session,'photostim','F_rest.npy'))
+        Fneu_rest = np.load(os.path.join(FOV_dir,session,'photostim','Fneu_rest.npy'))
+        F0_rest = np.load(os.path.join(FOV_dir,session,'photostim','F0_rest.npy'))
+   
         
+        F = np.concatenate([F,F_rest],0)
+        Fneu = np.concatenate([Fneu,Fneu_rest],0)
+        F0 = np.concatenate([F0,F0_rest],0)
+        stat = np.concatenate([stat,stat_rest])
+    
+    F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])
+    photostim_indices = np.concatenate([[0],np.cumsum(ops['frames_per_file'])])[:-1]
+    #%
+    F0_scalar = np.nanmedian(F0,1)
+    DFF = (F-F0_scalar[:,np.newaxis])/F0_scalar[:,np.newaxis]
+    DFF_aligned = align_trace_to_event(DFF,
+                             photostim_indices,
+                             step_back,
+                             step_forward)
+    mask = np.zeros_like(ops['meanImg'])
+    for i,roi_stat in enumerate(stat):
+        stat[i]['med'] = [np.median(stat[i]['ypix'][stat[i]['soma_crop']]),
+                          np.median(stat[i]['xpix'][stat[i]['soma_crop']])]
+        mask[roi_stat['ypix'],roi_stat['xpix']] = 1
+        
+    for i,roi_stat in enumerate(stat_rest):
+        stat_rest[i]['med'] = [np.median(stat_rest[i]['ypix'][stat_rest[i]['soma_crop']]),
+                               np.median(stat_rest[i]['xpix'][stat_rest[i]['soma_crop']])]
+        mask[roi_stat['ypix'],roi_stat['xpix']] = .5
+       #%
+        
+    x_offset = np.median(ops['xoff'])
+    y_offset  =np.median(ops['yoff'])
+    raw_movie_directory = os.path.join(raw_movie_basedir,subject,session)
+    photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
+    # we are assuming that the photostim group IDs stay the same even if there are multiple basenames
+    
+    photostim_dict = {}
+    for base_name,metadata in zip(photostim_files_dict['base_names'],photostim_files_dict['base_metadata']):
+        photostim_groups = metadata['metadata']['json']['RoiGroups']['photostimRoiGroups']
+        photostim_order = np.asarray(metadata['metadata']['hPhotostim']['sequenceSelectedStimuli'].strip('[]').split(' '),int) - 1 # python indexing
+        fovdeg = list()
+        for s in metadata['metadata']['hRoiManager']['imagingFovDeg'].strip('[]').split(' '): fovdeg.extend(s.split(';'))
+        fovdeg = np.asarray(fovdeg,float)
+        fovdeg = [np.min(fovdeg),np.max(fovdeg)]
+        
+        Lx = int(metadata['metadata']['hRoiManager']['pixelsPerLine'])
+        Ly = int(metadata['metadata']['hRoiManager']['linesPerFrame'])
+        yup,xup = upsample_block_shifts(Lx, Ly, ops['nblocks'], ops['xblock'], ops['yblock'], np.median(ops['yoff1'][:5000,:],0)[np.newaxis,:], np.median(ops['xoff1'][:5000,:],0)[np.newaxis,:])
+        xup=xup.squeeze()+x_offset 
+        yup=yup.squeeze()+y_offset 
+        group_list = []
+        for group_i,photostim_group in enumerate(photostim_groups):
+            power = photostim_group['rois'][1]['scanfields']['powers']
+            coordinates = photostim_group['rois'][1]['scanfields']['slmPattern']
+            xy = np.asarray(coordinates)[:,:2] + photostim_group['rois'][1]['scanfields']['centerXY']
+            centerXY_list = []
+            sizeXY_list = []
+            revolutions_list = []
+            for xy_now in xy:
+                px = xy_now[0]
+                py = xy_now[1]
+                ox = oy = 0
+                qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+                qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+                coordinates_now = (np.asarray([qx,qy])-fovdeg[0])/np.diff(fovdeg)
+                
+                coordinates_now = coordinates_now[::-1] # go to yx
+                coordinates_now[0] = coordinates_now[0]*Ly
+                coordinates_now[1] = coordinates_now[1]*Lx
+
+                yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
+                xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+                
+                #lt.plot(coordinates_now[1],coordinates_now[0],'ro')        
+                coordinates_now[0]-=yoff_now
+                coordinates_now[1]-=xoff_now
+                #plt.plot(coordinates_now[1],coordinates_now[0],'yo')
+
+                centerXY_list.append(coordinates_now[::-1]) # go back to xy
+                sizeXY_list.append((np.asarray(photostim_group['rois'][1]['scanfields']['sizeXY']))/np.diff(fovdeg)*np.asarray([Lx,Ly]))
+                revolutions_list.append(photostim_group['rois'][1]['scanfields']['stimparams'][1])
+                group_metadata = {'centerXY':np.asarray(centerXY_list),
+                                  'sizeXY':np.asarray(sizeXY_list),
+                                  'revolution':np.asarray(revolutions_list),
+                                  'power':power,
+                                  'power_slm':np.asarray(coordinates)[:,3],
+                                  'z':np.asarray(coordinates)[:,2]}
+            group_list.append(group_metadata)
+        photostim_dict[base_name] = {'photostim_order':photostim_order,
+                                      'group_list':group_list,
+                                      'base_name':base_name}
+
+
+    offset_list = np.arange(-15,5)
+    direct_amplitude_list = []    
+    for offset in offset_list:
+        print(offset)
+        for key in photostim_dict.keys():
+            photostim_dict[key]['counter'] = offset
+        photostim_group_list = []
+        for file in ops['tiff_list']:
+            file = file.split('/')[-1]
+            prefix = photostim_files_dict['basename_order'][np.where(photostim_files_dict['file_order']==file)[0][0]]
+            photostim_dict[prefix]['counter']+=1
+            photostim_group = photostim_dict[prefix]['photostim_order'][[np.max([0,photostim_dict[prefix]['counter']])]][0]
+            photostim_group_list.append(photostim_group)
+        
+        amplitudes_list = []
+        for group_idx in range(len(group_list)):
+            DFF_now = DFF_aligned[:,:,np.asarray(photostim_group_list)==group_idx]
+            DFF_averaged = np.nanmean(DFF_now,2)
+            
+            DFF_averaged_normalized = DFF_averaged-np.nanmean(DFF_averaged[:baseline_length,:],0)
+            amplitude = np.nanmean(DFF_averaged_normalized[step_back+peak_offset:step_back+peak_offset+peak_length,:],0)
+
+            amplitude[np.isnan(amplitude)]=0
+            amplitude_order = np.argsort(amplitude)[::-1]
+            distances=  []
+            for s,a in zip(stat,amplitude):
+                d_now = np.sqrt((group_list[group_idx]['centerXY'][:,0]-s['med'][1])**2 + (group_list[group_idx]['centerXY'][:,1] -s['med'][0])**2)
+                distances.append(np.min(d_now))
+            amplitudes_list.extend(amplitude[np.asarray(distances)<20])
+        direct_amplitude_list.append(np.nanmean(amplitudes_list))
+    
+    
+    #%
+    offset = offset_list[np.argmax(direct_amplitude_list)]
+    for key in photostim_dict.keys():
+        photostim_dict[key]['counter'] = offset
+    photostim_group_list = []
+    for file in ops['tiff_list']:
+        file = file.split('/')[-1]
+        prefix = photostim_files_dict['basename_order'][np.where(photostim_files_dict['file_order']==file)[0][0]]
+        photostim_dict[prefix]['counter']+=1
+        photostim_group = photostim_dict[prefix]['photostim_order'][[np.max([0,photostim_dict[prefix]['counter']])]][0]
+        photostim_group_list.append(photostim_group)
+        
+
+#%
+    #%% calculate noise level for all the cells
+    
+    photostim_repeats = []
+    for group_idx in range(len(group_list)):
+        photostim_repeats.append(sum(np.asarray(photostim_group_list) == group_idx))
+    unique_photostim_repeats = np.unique(photostim_repeats)
+    for cell_index in range(len(stat)):
+        print(cell_index)
+        dff = DFF[cell_index,:].copy()
+        s = stat[cell_index]
+        distances = []
+        for group_idx in range(len(group_list)):
+            d_now = np.sqrt((group_list[group_idx]['centerXY'][:,0]-s['med'][1])**2 + (group_list[group_idx]['centerXY'][:,1] -s['med'][0])**2)
+            distances.append(np.min(d_now))
+        involving_groups = np.where(np.asarray(distances)<max_direct_distance)[0]
+        direct_stim_indices = []
+        for g in involving_groups:
+            direct_stim_indices.extend(photostim_indices[np.asarray(photostim_group_list)==g])
+        direct_stim_indices = np.unique(direct_stim_indices)   
+        
+        for i in direct_stim_indices:
+            dff[np.max([0,i-1]):i+10] = np.nan
+
+        for trial_i,trial_num in enumerate(unique_photostim_repeats):
+            print(trial_num)
+            amplitude_all = []
+            for repeat in range(1000):
+                #stim_indices = np.asarray(np.random.uniform(step_back,DFF.shape[1]-step_forward-peak_offset,trial_num),int)
+                amplitudes = []
+                while len(amplitudes)<trial_num:
+                    idx = int(np.random.uniform(step_back,DFF.shape[1]-step_forward-peak_offset))
+                    amplitude = np.mean(dff[idx+peak_offset:idx+peak_offset+step_forward])-np.mean(dff[idx-step_back:idx])
+                    if np.isnan(amplitude) == False:
+                        amplitudes.append(amplitude)
+                amplitude_all.append(np.nanmean(amplitudes))
+                
+            for group_idx in np.where(np.asarray(photostim_repeats) == trial_num)[0]:
+                if cell_index == 0:
+                    group_list[group_idx]['cell_response_distribution'] = [np.sort(amplitude_all)]
+                else:
+                    group_list[group_idx]['cell_response_distribution'].append(np.sort(amplitude_all))
+        
+        
+    photostim_dict_out = {'group_order': photostim_group_list,
+                      'groups':group_list,
+                      'group_repeats':photostim_repeats,
+                      'photostim_indices':np.concatenate([[0],np.cumsum(ops['frames_per_file'])])[:-1]}
+    
+    
+    
+    
+    #%%
+    
+    photostim_group_list = photostim_dict_out['group_order'].copy()
+    group_list = photostim_dict_out['groups'].copy()
+    significant_distances_all = []
+    significant_amplitudes_all = []
+    nonsignificant_distances_all = []
+    nonsignificant_amplitudes_all = []
+    significant_cells_per_groups = []
+    nonsignificant_cells_per_group = []
+    for group_idx in range(len(group_list)): 
+        DFF_now = DFF_aligned[:,:,np.asarray(photostim_group_list)==group_idx]
+        DFF_averaged = np.nanmean(DFF_now,2)
+
+        DFF_averaged_normalized = DFF_averaged-np.nanmean(DFF_averaged[:baseline_length,:],0)
+        amplitude = np.nanmean(DFF_averaged_normalized[step_back+peak_offset:step_back+peak_offset+peak_length,:],0)
+        distances=  []
+        for s,a in zip(stat,amplitude):
+            d_now = np.sqrt((group_list[group_idx]['centerXY'][:,0]-s['med'][1])**2 + (group_list[group_idx]['centerXY'][:,1] -s['med'][0])**2)
+            distances.append(np.min(d_now))
+        direct_cell_indices = np.asarray(distances)<max_direct_distance
+        significant_direct_cells = []
+        nonsignificant_direct_cells = []
+
+        for idx in np.where(direct_cell_indices)[0]:
+            null_distribution = photostim_dict_out['groups'][group_idx]['cell_response_distribution'][idx]
+            if amplitude[idx]>np.percentile(null_distribution,100-false_positive_rate):
+                significant_direct_cells.append(idx)
+            else:
+                nonsignificant_direct_cells.append(idx)
+        group_list[group_idx]['photostimmed_cells'] = significant_direct_cells
+        significant_distances_all.append(np.asarray(distances)[significant_direct_cells])
+        nonsignificant_distances_all.append(np.asarray(distances)[nonsignificant_direct_cells])
+        significant_amplitudes_all.append(np.asarray(amplitude)[significant_direct_cells])
+        nonsignificant_amplitudes_all.append(np.asarray(amplitude)[nonsignificant_direct_cells])
+        significant_cells_per_groups.append(len(significant_direct_cells))
+        nonsignificant_cells_per_group.append(len(nonsignificant_direct_cells))
+            
+
+    
+    #overlaps
+    if use_overlap:
+        from scipy.ndimage import gaussian_filter
+
+        photostim_mask_list = []
+        grid = np.asarray(np.meshgrid(np.arange(ops['meanImg'].shape[0]),np.arange(ops['meanImg'].shape[1])))
+        for group_idx in range(len(group_list)):
+            photostim_mask = np.zeros(ops['meanImg'].shape)
+            for center,size in zip(group_list[group_idx]['centerXY'],group_list[group_idx]['sizeXY']):
+                photostim_mask[np.sqrt((grid[1,:,:]-center[1])**2 + (grid[0,:,:]-center[0])**2)<size[0]/2] =1
+            photostim_mask_list.append(photostim_mask)
+        overlaps = np.zeros([len(stat),len(group_list)])*np.nan
+        for cell_i,s in enumerate(stat):
+            print(cell_i/len(stat))
+            cell_mask = np.zeros(ops['meanImg'].shape)
+            cell_mask[s['ypix'],s['xpix']]=1
+            cell_mask = gaussian_filter(cell_mask, 2)
+            for group_idx in range(len(group_list)):
+                photostim_mask = photostim_mask_list[group_idx].copy()
+                photostim_mask+=cell_mask
+                #photostim_overlap.append()
+                overlaps[cell_i,group_idx]=np.sum(photostim_mask>1)/(size[0]*size[1])
+           # asdasd
+    start_indices = np.asarray(np.arange(part_num)*len(photostim_group_list)/part_num,int)
+    end_indices = np.asarray((np.arange(part_num)+1)*len(photostim_group_list)/part_num,int)
+    direct_amplitude_list_stability = []
+    direct_amplitude_list_stability_per_group = []
+    direct_amplitude_list_stability_per_cell = np.nan*np.ones([len(stat),len(group_list),part_num])## neurons X photostim groups * parts
+    for part_i,(s,e) in enumerate(zip(start_indices,end_indices)):
+        photostim_group_list_ = np.asarray(photostim_group_list)[s:e]
+        DFF_aligned_ = DFF_aligned[:,:,s:e]
+        amplitudes_list = []
+        amplitudes_list_per_group = []
+        for group_idx in range(len(group_list)):
+            DFF_now = DFF_aligned_[:,:,np.asarray(photostim_group_list_)==group_idx]
+            DFF_averaged = np.nanmean(DFF_now,2)
+
+            DFF_averaged_normalized = DFF_averaged-np.nanmean(DFF_averaged[:baseline_length,:],0)
+            amplitude = np.nanmean(DFF_averaged_normalized[step_back+peak_offset:step_back+peak_offset+peak_length,:],0)
+            
+            amplitude[np.isnan(amplitude)]=0
+            #amplitude_order = np.argsort(amplitude)[::-1]
+# =============================================================================
+#             distances=  []
+#             for s,a in zip(stat,amplitude):
+#                 d_now = np.sqrt((group_list[group_idx]['centerXY'][:,0]-s['med'][1])**2 + (group_list[group_idx]['centerXY'][:,1] -s['med'][0])**2)
+#                 distances.append(np.min(d_now))
+#             if use_overlap:
+#                 direct_cell_indices = (overlaps[:,group_idx]).squeeze()>min_overlap
+#             else:
+#                 direct_cell_indices = np.asarray(distances)<min_direct_distance
+# =============================================================================
+            direct_cell_indices = group_list[group_idx]['photostimmed_cells']
+            
+            direct_amplitude_list_stability_per_cell[direct_cell_indices,group_idx,part_i]=amplitude[direct_cell_indices]
+            amplitudes_list.extend(amplitude[direct_cell_indices])
+            amplitudes_list_per_group.append(np.nanmean(amplitude[direct_cell_indices]))
+        direct_amplitude_list_stability.append(np.nanmean(amplitudes_list))
+        direct_amplitude_list_stability_per_group.append(amplitudes_list_per_group)
+      
+    
+    #%%
+    fig = plt.figure(figsize = [15,10])
+    ax1 = fig.add_subplot(2,3,1)
+    ax2 = fig.add_subplot(2,3,4)
+    ax3 = fig.add_subplot(2,3,5)
+    ax4 = fig.add_subplot(2,3,6)
+    
+    ax5 = fig.add_subplot(2,3,2)
+    ax6 = fig.add_subplot(2,3,3)
+    
+    
+    ax1.plot(offset_list,direct_amplitude_list)
+    ax1.set_xlabel('offset in order')
+    ax1.set_ylabel('average directly stimulated amplitude')
+    
+    
+    ax2.plot(np.asarray(direct_amplitude_list_stability_per_group))
+    ax2.plot(direct_amplitude_list_stability,'k-',linewidth = 4)
+    ax2.set_xlabel('photostim progress')
+    ax2.set_ylabel('direct photostimamplitude per group')
+    ax3.plot(np.nanmean(direct_amplitude_list_stability_per_cell,1).squeeze().T)
+    ax3.plot(np.nanmean(np.nanmean(direct_amplitude_list_stability_per_cell,1),0).squeeze().T,'k-',linewidth = 4)
+    ax3.set_xlabel('photostim progress')
+    ax3.set_ylabel('direct photostimamplitude per cell')
+    a = np.nanmean(direct_amplitude_list_stability_per_cell,1).squeeze()
+    #ax4.plot(a[:,0],a[:,-1],'ko')
+    ax4.plot(direct_amplitude_list_stability_per_cell[:,:,0].flatten(),direct_amplitude_list_stability_per_cell[:,:,-1].flatten(),'k.',alpha = .2)
+    needed = (np.isnan(a[:,0]) == False) &(a[:,0]>.5)
+    p = np.polyfit(a[needed,0],a[needed,-1],1)
+    ax4.plot([0,2],np.polyval(p,[0,2]),'r-',label = 'y={:.2f}*x+{:.2f}'.format(p[0],p[1]))
+    ax4.set_xlabel('direct amplitude 1st part')
+    ax4.set_ylabel('direct amplitude last part')
+    ax4.legend()
+    ax5.plot(np.concatenate(nonsignificant_distances_all),np.concatenate(nonsignificant_amplitudes_all),'k.',alpha = .5)
+    ax5.plot(np.concatenate(significant_distances_all),np.concatenate(significant_amplitudes_all),'r.',alpha = .5)
+    
+    ax5.set_xlabel('distance from closest photostim')
+    ax5.set_ylabel('mean ampitude (dF/F)')
+    
+    ax6.hist(nonsignificant_cells_per_group,10,color = 'black',alpha = .5,label = 'no significant excitation')
+    ax6.hist(significant_cells_per_groups,10,color = 'red',alpha = .5,label = 'significant excitation')
+    ax6.set_xlabel('# of directly photostimmed cells in group')
+    ax6.set_ylabel('# of groups')
+    ax6.legend()
+    #ax6.plot(nonsignificant_cells_per_group,significant_cells_per_groups,'ko')
+    np.save(os.path.join(FOV_dir,session,'photostim','photostim_groups.npy'),photostim_dict_out,allow_pickle = True)
+    
+    fig.savefig(os.path.join(FOV_dir,session,'photostim','direct_photostim.pdf'), format="pdf")
+    plt.close()
