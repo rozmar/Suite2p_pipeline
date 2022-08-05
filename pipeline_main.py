@@ -15,6 +15,10 @@ overwrite_export = 'true' in sys.argv[7].lower()
 register_photostim = 'true' in sys.argv[8].lower()
 export_photostim = 'true' in sys.argv[9].lower()
 export_photostim_apical_dendrites = 'true' in sys.argv[10].lower()
+try:
+    extract_photostim_groups = 'true' in sys.argv[11].lower()
+except:
+    extract_photostim_groups = False
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
@@ -116,3 +120,9 @@ if export_photostim:
                           overwrite = overwrite_export,
                           roi_types = roi_types,
                           photostim = True)
+if extract_photostim_groups:
+    extract.extract_photostim_groups(subject=subject,
+                                 FOV=fov,
+                                 setup=setup,
+                                 raw_movie_basedir=raw_scanimage_dir_base,
+                                 suite2p_basedir=suite2p_dir_base)
