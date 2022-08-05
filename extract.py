@@ -709,7 +709,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         
     x_offset = np.median(ops['xoff'])
     y_offset  =np.median(ops['yoff'])
-    raw_movie_directory = os.path.join(raw_movie_basedir,subject,session)
+    raw_movie_directory = os.path.join(raw_movie_basedir,setup,subject,session)
     photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
     # we are assuming that the photostim group IDs stay the same even if there are multiple basenames
     
