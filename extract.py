@@ -603,7 +603,8 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
                              session,
                              setup,
                              raw_movie_basedir,
-                             suite2p_basedir):
+                             suite2p_basedir,
+                             overwrite=False):
     """
     Extracts photostim coordinates from scanimage header.
     Rotates it and does rigid and non-rigid registration on them to match mean image.
@@ -641,6 +642,12 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
 #     setup = 'Bergamo-2P-Photostim'   
 # =============================================================================
     FOV_dir = os.path.join(suite2p_basedir,setup,subject,FOV)
+    
+    
+    if 'photostim_groups.npy' in os.listdir(os.path.join(FOV_dir,session,'photostim')) and not overwrite:
+        print('{} already exported'.format(session))
+        return
+        
     use_all_ROIs = False
     step_back = 10
     step_forward = 20
@@ -653,6 +660,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     max_direct_distance = 30
     part_num= 5
     false_positive_rate = 1 #per cent
+    
     
     
     ops =  np.load(os.path.join(FOV_dir,session,'photostim','ops.npy'),allow_pickle = True).tolist()
