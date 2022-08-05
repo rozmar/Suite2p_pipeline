@@ -584,8 +584,12 @@ def extract_photostim_groups(subject,
                              suite2p_basedir):
     FOV_dir = os.path.join(suite2p_basedir,setup,subject,FOV)
     sessions=os.listdir(FOV_dir)  
+    print('extractin photostim groups for {} - {}'.format(subject, FOV))
     for session in sessions:
         if 'z-stack' in session.lower() or '.' in session:
+            continue
+        if 'photostim' not in os.listdir(os.path.join(suite2p_basedir,setup,subject,FOV,session)):
+            print('no photostim found for {}'.format(session))
             continue
         extract_photostim_groups_core(subject, 
                                     FOV,
