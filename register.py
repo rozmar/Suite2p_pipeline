@@ -178,8 +178,10 @@ def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 #'num_workers':4,
                 'z_stack_name':'',
                 'reference_session':''} # folder where the suite2p output is saved
-    
-    subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+    try:
+        subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+    except:
+        subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject+'.csv'))
     sessions = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject))
     session_date_dict = {}
     for session in sessions:
@@ -331,7 +333,10 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     processes_running = 0
     
     #% metadata will be updated manually, this script will read .csv files
-    subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+    try:
+        subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+    except:
+        subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject+'.csv'))
     #decode session dates here
     import datetime
     sessions = os.listdir(os.path.join(raw_scanimage_dir_base,setup,subject))
