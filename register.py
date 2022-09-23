@@ -52,8 +52,11 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             try:
                 subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
             except:
-                print('no metadata found')
-                continue
+                try:
+                    subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject+'.csv'))
+                except:
+                    print('no metadata found')
+                    continue
             print(subject)
             
             #decode session dates here
