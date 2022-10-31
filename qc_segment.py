@@ -296,7 +296,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     xoff_std_list_concatenated = np.asarray(xoff_std_list_concatenated)        
     yoff_std_list_concatenated = np.asarray(yoff_std_list_concatenated)        
     session_zoffset_list_concatenated = np.asarray(session_zoffset_list_concatenated)    
-    mean_intensity_list = np.asarray(mean_intensity_list)      
+    mean_intensity_list = np.asarray(mean_intensity_list).squeeze()    
     try:# this is where the offsets can go btw
         zcorr_list_concatenated = np.concatenate(zcorr_list_concatenated).squeeze()
     except: # the z-stacks have different number of planes - 
