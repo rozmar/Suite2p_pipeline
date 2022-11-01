@@ -209,8 +209,8 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     yoff_list = []
     session_data_dict = {}
     reference_image_dict = {}
-    
-    correlate_z_stacks(FOV_dir) # calculate Z-stack correlations
+    if correlte_z_stacks:
+        correlate_z_stacks(FOV_dir) # calculate Z-stack correlations
     z_stack_corr_dict = np.load(os.path.join(FOV_dir,'z_stack_correlations.npy'),allow_pickle = True).tolist()
     z_offset = 0
     reference_z_stack_name= None
