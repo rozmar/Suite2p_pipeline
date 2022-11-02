@@ -64,4 +64,8 @@ pip install -e .
 
 
 ```
-
+## add environment kernel for jupyter notebook
+```
+conda activate bci_with_suite2p
+python -m ipykernel install --user --name=bci_with_suite2p
+```
