@@ -15,6 +15,7 @@ try:
     from suite2p import default_ops as s2p_default_ops
     from suite2p import run_s2p, io,registration, run_plane
     from suite2p.registration import rigid
+    from suite2p.io.binary import BinaryFile
 except:
     print('could not import s2p')
 
@@ -176,8 +177,16 @@ def restore_motion_corrected_zstack(dir_now):
         plane_nums.append(int(plane[5:]))
     order = np.argsort(plane_nums)
     meanimages = list()
+    meanimages_ch2 = list()
     for plane in np.asarray(planes)[order]:
         ops = np.load(os.path.join(dir_now,'suite2p',plane,'ops.npy'),allow_pickle=True).tolist()
+        if ops['nchannels'] == 2:
+            with BinaryFile(read_filename=ops['reg_file_chan2'], Ly=ops['Ly'], Lx=ops['Lx']) as f:
+                mov = f.bin_movie(bin_size=10,
+                                  bad_frames=None,
+                                    y_range=None,
+                                    x_range=None,)
+            meanim_ch2 = np.mean(mov,0)
         if len(meanimages)>0: # register to previous image
             maskMul, maskOffset = rigid.compute_masks(refImg=meanimages[-1],
                                                       maskSlope=1)
@@ -188,15 +197,20 @@ def restore_motion_corrected_zstack(dir_now):
                                                maxregshift=50,
                                                smooth_sigma_time=0)
             regimage = rigid.shift_frame(frame=ops['meanImg'], dy=ymax[0], dx=xmax[0])
-            
-            #print([xmax,ymax])
+            if ops['nchannels'] == 2:
+                meanim_ch2 = rigid.shift_frame(frame=meanim_ch2, dy=ymax[0], dx=xmax[0])
         else:
             regimage = ops['meanImg']
-            #break
+
         meanimages.append(regimage)
+        if ops['nchannels'] == 2:
+            meanimages_ch2.append(meanim_ch2)
     #break
     imgs = np.asarray(meanimages,dtype = np.int32)
     tifffile.imsave(os.path.join(dir_now,Path(dir_now).parts[-1]+'.tif'),imgs)
+    if ops['nchannels'] == 2:
+        imgs = np.asarray(meanimages_ch2,dtype = np.int32)
+        tifffile.imsave(os.path.join(dir_now,Path(dir_now).parts[-1]+'_ch2.tif'),imgs)
         
 def average_zstack(source_tiff, target_movie_directory):
     """
@@ -264,48 +278,58 @@ def register_zstack(source_tiff,target_movie_directory):
     
     Path(target_movie_directory).mkdir(parents = True,exist_ok = True)
     reordered_tiff = os.path.join(target_movie_directory,tiff_name)
+    reordered_tiff_old = os.path.join(target_movie_directory,'original_'+tiff_name)
     #%%
-    shutil.copyfile(source_tiff,reordered_tiff)
+    if not os.path.isfile(reordered_tiff_old): # only for testing purposes - so I don't have to wait for copying file over
+        shutil.copyfile(source_tiff,reordered_tiff_old)
     
     #%%
-    metadata = extract_scanimage_metadata(reordered_tiff)
+    metadata = extract_scanimage_metadata(reordered_tiff_old)
 
-    nplanes = int(metadata['metadata']['hStackManager']['numSlices'])
+    #nplanes = int(metadata['metadata']['hStackManager']['numSlices'])
+    
+    
     if '[' in metadata['metadata']['hChannels']['channelSave']:
         nchannels= 2
     else:
         nchannels = 1
-
     
-    
-    tiff_orig = tifffile.imread(reordered_tiff)
-    
+    tiff_orig = tifffile.imread(reordered_tiff_old)
+    nplanes =tiff_orig.shape[0]
+    print('planes: {}'.format(nplanes))
     #%
-    
+    print(tiff_orig.shape)
     if nchannels == 1:
         imgperplane = tiff_orig.shape[1]
-        tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1],tiff_orig.shape[2],tiff_orig.shape[3]],np.int16)
+        tiff_reordered = np.zeros([nplanes*tiff_orig.shape[1],tiff_orig.shape[2],tiff_orig.shape[3]],np.int16)#tiff_orig.shape[0]
         for slice_i, slicenow in enumerate(tiff_orig):
             for img_i, imgnow in enumerate(slicenow):
-                tiff_reordered[slice_i+img_i*nplanes,:,:] = imgnow
-    else:
-        #%
-# =============================================================================
-#         imgperplane = tiff_orig.shape[1]
-#         tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1]*tiff_orig.shape[2],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16)
-#         for slice_i, slicenow in enumerate(tiff_orig):
-#             for img_i, imgnow in enumerate(slicenow):
-#                 for ch_i, ch_imgnow in enumerate(imgnow):
-#                     tiff_reordered[img_i*nplanes*nchannels+slice_i*nchannels+ch_i,:,:] = ch_imgnow
-# =============================================================================
-        imgperplane = tiff_orig.shape[1]
-        tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16)
+                tiff_reordered[img_i*nplanes+slice_i,:,:] = imgnow
+    else: # doesn't want to work for 2 channels and it drives me nuts!
+#         #%
+# # ============================================================================= 
+        # imgperplane = tiff_orig.shape[1] #use both channels - doesn't work!!!!
+        # tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1]*tiff_orig.shape[2],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16)
+        # for slice_i, slicenow in enumerate(tiff_orig):
+        #     for img_i, imgnow in enumerate(slicenow):
+        #         for ch_i, ch_imgnow in enumerate(imgnow):
+        #             tiff_reordered[img_i*nplanes*nchannels+slice_i*nchannels+ch_i,:,:] = ch_imgnow
+# # ============================================================================= 
+        # nchannels = 1#use only green channel
+        # imgperplane = tiff_orig.shape[1]
+        # tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16) # this was a prior solution, but seems too small..
+        # #tiff_reordered = np.zeros([tiff_orig.shape[0]*tiff_orig.shape[1]*tiff_orig.shape[2],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16)
+        # for slice_i, slicenow in enumerate(tiff_orig):
+        #     for img_i, imgnow in enumerate(slicenow):
+        #         tiff_reordered[slice_i+img_i*nplanes,:,:] = imgnow[0,:,:]
+#  #%
+        imgperplane = tiff_orig.shape[1]# both channels new approach
+        tiff_reordered = np.zeros([nplanes*tiff_orig.shape[1],tiff_orig.shape[2],tiff_orig.shape[3],tiff_orig.shape[4]],np.int16)#tiff_orig.shape[0]
         for slice_i, slicenow in enumerate(tiff_orig):
             for img_i, imgnow in enumerate(slicenow):
-                tiff_reordered[slice_i+img_i*nplanes,:,:] = imgnow[0,:,:]
- #%
-    
-    
+                tiff_reordered[img_i*nplanes+slice_i, :,:,:] = imgnow
+
+    print(tiff_reordered.shape)
     tifffile.imsave(reordered_tiff,tiff_reordered)
     del tiff_reordered, tiff_orig
     
@@ -320,6 +344,8 @@ def register_zstack(source_tiff,target_movie_directory):
     FOV = np.min(pixelsize)*np.asarray(movie_dims)
     ops = s2p_default_ops()#run_s2p.default_ops()
     
+    
+    
     ops['reg_tif'] = False # save registered movie as tif files
     ops['delete_bin'] = 0 
     ops['keep_movie_raw'] = 0
@@ -331,9 +357,9 @@ def register_zstack(source_tiff,target_movie_directory):
 #     else:
 #         ops['nchannels'] = 1
 # =============================================================================
-    ops['nchannels'] = 1
+    ops['nchannels'] = nchannels
     ops['maxregshift'] =  s2p_params['max_reg_shift']/np.max(FOV)
-    ops['nimg_init'] = 100
+    ops['nimg_init'] = 50
     ops['nonrigid'] = False
     ops['maxregshiftNR'] = int(s2p_params['max_reg_shift_NR']/np.min(pixelsize)) # this one is in pixels...
     block_size_optimal = np.round((s2p_params['block_size']/np.min(pixelsize)))
@@ -345,7 +371,7 @@ def register_zstack(source_tiff,target_movie_directory):
     ops['data_path'] = target_movie_directory
     ops['tiff_list'] = [reordered_tiff]
     ops['batch_size'] = 50
-    ops['nplanes'] = int(metadata['metadata']['hStackManager']['numSlices'])
+    ops['nplanes'] = nplanes#int(metadata['metadata']['hStackManager']['numSlices'])
     ops['do_registration'] = 1
     ops['roidetect'] = False
     print('regstering {}'.format(reordered_tiff))
