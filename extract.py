@@ -581,7 +581,8 @@ def extract_photostim_groups(subject,
                              FOV,
                              setup,
                              raw_movie_basedir,
-                             suite2p_basedir):
+                             suite2p_basedir,
+                            overwrite = False):
     FOV_dir = os.path.join(suite2p_basedir,setup,subject,FOV)
     sessions=os.listdir(FOV_dir)  
     print('extractin photostim groups for {} - {}'.format(subject, FOV))
@@ -596,7 +597,8 @@ def extract_photostim_groups(subject,
                                     session,
                                     setup,
                                     raw_movie_basedir,
-                                    suite2p_basedir)
+                                    suite2p_basedir,
+                                     overwrite)
     
 def extract_photostim_groups_core(subject, #TODO write more explanation and make this script nicer
                              FOV,
@@ -665,11 +667,14 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     
     ops =  np.load(os.path.join(FOV_dir,session,'photostim','ops.npy'),allow_pickle = True).tolist()
     meanimg_dict = np.load(os.path.join(FOV_dir,session,'mean_image.npy'),allow_pickle = True).tolist()
-    angle = -1*np.mean(np.asarray([np.arccos(meanimg_dict['rotation_matrix'][0,0]),
-                                np.arcsin(meanimg_dict['rotation_matrix'][1,0]),
-                                -1*np.arcsin(meanimg_dict['rotation_matrix'][0,1]),
-                                np.arccos(meanimg_dict['rotation_matrix'][1,1])]))
-    
+    if 'rotation_matrix' in meanimg_dict.keys():
+        angle = -1*np.mean(np.asarray([np.arccos(meanimg_dict['rotation_matrix'][0,0]),
+                                    np.arcsin(meanimg_dict['rotation_matrix'][1,0]),
+                                    -1*np.arcsin(meanimg_dict['rotation_matrix'][0,1]),
+                                    np.arccos(meanimg_dict['rotation_matrix'][1,1])]))
+    else:
+        angle = 0
+
     
     
     F = np.load(os.path.join(FOV_dir,session,'photostim','F.npy'))
@@ -724,7 +729,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     photostim_dict = {}
     for base_name,metadata in zip(photostim_files_dict['base_names'],photostim_files_dict['base_metadata']):
         photostim_groups = metadata['metadata']['json']['RoiGroups']['photostimRoiGroups']
-        photostim_order = np.asarray(metadata['metadata']['hPhotostim']['sequenceSelectedStimuli'].strip('[]').split(' '),int) - 1 # python indexing
+        photostim_order = np.asarray(metadata['metadata']['hPhotostim']['sequenceSelectedStimuli'].strip('[]').split(' ')*10,int) - 1 # python indexing # repeating the stuff 10 times
         fovdeg = list()
         for s in metadata['metadata']['hRoiManager']['imagingFovDeg'].strip('[]').split(' '): fovdeg.extend(s.split(';'))
         fovdeg = np.asarray(fovdeg,float)
@@ -788,8 +793,11 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         photostim_group_list = []
         for file in ops['tiff_list']:
             file = file.split('/')[-1]
+            
             prefix = photostim_files_dict['basename_order'][np.where(photostim_files_dict['file_order']==file)[0][0]]
+            
             photostim_dict[prefix]['counter']+=1
+            #print([prefix,file,photostim_dict[prefix]['counter']])
             photostim_group = photostim_dict[prefix]['photostim_order'][[np.max([0,photostim_dict[prefix]['counter']])]][0]
             photostim_group_list.append(photostim_group)
         
@@ -852,7 +860,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         for trial_i,trial_num in enumerate(unique_photostim_repeats):
             #print(trial_num)
             amplitude_all = []
-            for repeat in range(200):
+            for repeat in range(100):
                 #stim_indices = np.asarray(np.random.uniform(step_back,DFF.shape[1]-step_forward-peak_offset,trial_num),int)
                 amplitudes = []
                 while len(amplitudes)<trial_num:

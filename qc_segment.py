@@ -354,8 +354,10 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     x = np.arange(len(xoff_mean_list_concatenated))
     ax_xy.errorbar(x, xoff_mean_list_concatenated,yerr = xoff_std_list_concatenated,fmt = '-',label = 'X offset')
     ax_xy.errorbar(x, yoff_mean_list_concatenated,yerr = yoff_std_list_concatenated,fmt = '-',label = 'Y offset')
-    
-    ax_mean_intensity.plot(x,mean_intensity_list,'g-')
+    try:
+        ax_mean_intensity.plot(x,mean_intensity_list,'g-')
+    except:
+        pass
     
     ax_zz.plot(x, np.argmax(zcorr_list_concatenated.squeeze(),1)+session_zoffset_list_concatenated,'r-',label = 'Z offset')
     ax_zz.plot(x, z_with_hw,'y-',label = 'Z offset with halfwidth')

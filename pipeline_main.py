@@ -19,6 +19,10 @@ try:
     extract_photostim_groups = 'true' in sys.argv[11].lower()
 except:
     extract_photostim_groups = False
+try:
+    overwrite_photostim_groups = 'true' in sys.argv[12].lower()
+except:
+    overwrite_photostim_groups = False
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
@@ -26,7 +30,7 @@ metadata_dir = '/home/jupyter/bucket/Metadata/'
 raw_scanimage_dir_base ='/home/jupyter/bucket/Data/Calcium_imaging/raw/' 
 suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_imaging/suite2p/'
 bpod_path = '/home/jupyter/bucket/Data/Behavior/BCI_exported/'
-setup = 'Bergamo-2P-Photostim'
+setup = 'Bergamo-2P-Photostim'#'DOM3-MMIMS'
 save_path = "/home/jupyter/bucket/Data/Calcium_imaging/sessionwise_tba"
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 if register_z_stacks:
@@ -125,4 +129,5 @@ if extract_photostim_groups:
                                  FOV=fov,
                                  setup=setup,
                                  raw_movie_basedir=raw_scanimage_dir_base,
-                                 suite2p_basedir=suite2p_dir_base)
+                                 suite2p_basedir=suite2p_dir_base,
+                                     overwrite = overwrite_photostim_groups)
