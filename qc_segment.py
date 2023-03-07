@@ -11,6 +11,9 @@ from suite2p import registration
 import cv2
 import tifffile
 version = '1.0'
+cutoff_pixel_num = [20, 300]
+minimum_pixel_num = 10
+
 
 def correlate_z_stacks(FOV_dir):
 #%%
@@ -469,8 +472,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         #%% calculate neuroil and cell masks
         cell_masks_, neuropil_masks_ = create_masks(ops, stat)
         #%% select good rois
-        cutoff_pixel_num = [50, 300]
-        minimum_pixel_num = 10
+        
         cell_masks = []
         neuropil_masks = []
         rois = np.zeros_like(ops['meanImg'])
