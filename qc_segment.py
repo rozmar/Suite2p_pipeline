@@ -12,7 +12,9 @@ import cv2
 import tifffile
 version = '1.0'
 cutoff_pixel_num = [20, 300]
-minimum_pixel_num = 10
+minimum_pixel_num = -1
+tau = 1
+allow_overlap = True
 
 
 def correlate_z_stacks(FOV_dir):
@@ -433,6 +435,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         t_step_size = int(np.ceil(binned_movie_concatenated.shape[0]/max_binned_frame_num))
         binned_movie_concatenated = binned_movie_concatenated[::t_step_size,:,:]
         #%% segment ROIs
+        ops['allow_overlap']  = allow_overlap
         if use_cellpose:
             ops['anatomical_only'] = True
             ops['diameter'] = [10,10]
@@ -440,6 +443,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             ops['anatomical_only'] = False
         ops['xrange'] = [0, ops['Lx']]
         ops['yrange'] = [0, ops['Ly']]
+        
         try:
             del ops['meanImg_chan2']
         except:

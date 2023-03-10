@@ -8,6 +8,9 @@ import datetime
 import json
 import time
 from suite2p.io.binary import BinaryFile
+
+tau = 2 # secondsc - for binning
+
 def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                       metadata_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Metadata/',
                       raw_scanimage_dir_base ='/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
@@ -614,7 +617,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 ops['nframes'] = sum(ops['nframes_list'])
                 ops['reg_file'] = os.path.join(concatenated_movie_dir,'data.bin')
                 ops['fs'] = np.mean(ops['fs_list'])
-                bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(ops['tau'] * ops['fs'])))
+                bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(tau * ops['fs']))) #ops['tau']
                 badframes = np.asarray(np.zeros(ops['nframes']),bool)
                 frames_so_far = 0
                 if minimum_contrast_for_binned_movie is None:

@@ -715,7 +715,9 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
 #                                                                       ymax1=ymax1,
 #                                                                       xmax1=xmax1,
 #                                                                       )
-        refImg = refImg[0,:,:].squeeze()
+        if len(refImg.shape)>2:
+            refImg = refImg[0,:,:].squeeze()
+        
         
     
         meanimage_dict = {'refImg':refImg,

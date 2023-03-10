@@ -8,7 +8,7 @@ except:
 subject = sys.argv[1]
 fov = sys.argv[2]
 register_z_stacks = 'true' in sys.argv[3].lower()
-regiter_sessions = 'true' in sys.argv[4].lower()
+register_sessions = 'true' in sys.argv[4].lower()
 resegment_cells = 'true' in sys.argv[5].lower()
 correlte_z_stacks = 'true' in sys.argv[6].lower()
 overwrite_export = 'true' in sys.argv[7].lower()
@@ -51,7 +51,7 @@ if register_z_stacks:
                                   setup = setup,
                                   method = 'averaging')
 
-if regiter_sessions:
+if register_sessions:
     register.register_session(local_temp_dir = local_temp_dir,
                               metadata_dir = metadata_dir,
                               raw_scanimage_dir_base =raw_scanimage_dir_base,
