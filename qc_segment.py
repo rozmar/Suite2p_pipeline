@@ -186,6 +186,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                minimum_contrast = 3,
                acceptable_z_range = 3,
                segment_cells = False,
+               overwrite_segment = False,
                correlte_z_stacks = False):
     # TODO these variables are hard-coded
    
@@ -390,7 +391,8 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     fig.savefig(os.path.join(FOV_dir,'XYZ_motion.pdf'), format="pdf")
     
     
-    if segment_cells:
+    if segment_cells and (not os.path.exists(os.path.join(FOV_dir, 'cell_masks.npy')) or overwrite_segment):
+          
         #%% concatenate binned movie
         max_binned_frame_num = 7000#after this it fills up the 120GB RAM
         binned_movie_concatenated = []

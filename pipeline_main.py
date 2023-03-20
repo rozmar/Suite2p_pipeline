@@ -7,21 +7,29 @@ except:
 
 subject = sys.argv[1]
 fov = sys.argv[2]
-register_z_stacks = 'true' in sys.argv[3].lower()
-register_sessions = 'true' in sys.argv[4].lower()
-resegment_cells = 'true' in sys.argv[5].lower()
-correlte_z_stacks = 'true' in sys.argv[6].lower()
-overwrite_export = 'true' in sys.argv[7].lower()
-register_photostim = 'true' in sys.argv[8].lower()
-export_photostim = 'true' in sys.argv[9].lower()
-export_photostim_apical_dendrites = 'true' in sys.argv[10].lower()
-try:
-    extract_photostim_groups = 'true' in sys.argv[11].lower()
-except:
+if sys.argv[3].lower() == 'register-export':
+    register_z_stacks = True
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = True
+    overwrite_export = False
+    register_photostim = True
+    export_photostim = True
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = True
+    overwrite_photostim_groups = False
+elif sys.argv[3].lower() == 'segment-only':
+    register_z_stacks = False
+    register_sessions = False
+    segment_cells = True
+    overwrite_segmentation = False
+    correlte_z_stacks = False
+    overwrite_export = False
+    register_photostim = False
+    export_photostim = False
+    export_photostim_apical_dendrites = False
     extract_photostim_groups = False
-try:
-    overwrite_photostim_groups = 'true' in sys.argv[12].lower()
-except:
     overwrite_photostim_groups = False
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
@@ -61,7 +69,7 @@ if register_sessions:
                               max_process_num = 4,
                               batch_size = 50,
                               FOV_needed = fov)
-if resegment_cells or correlte_z_stacks:
+if segment_cells or correlte_z_stacks:
     qc_segment.qc_segment(local_temp_dir = local_temp_dir,
                           metadata_dir = metadata_dir,
                           raw_scanimage_dir_base =raw_scanimage_dir_base,
@@ -71,7 +79,8 @@ if resegment_cells or correlte_z_stacks:
                           fov = fov,
                           minimum_contrast = 3,
                           acceptable_z_range = 1,
-                          segment_cells = resegment_cells,
+                          segment_cells = segment_cells,
+                          overwrite_segment = overwrite_segmentation,
                           correlte_z_stacks =correlte_z_stacks) 
 
 extract.extract_traces(local_temp_dir = local_temp_dir,
