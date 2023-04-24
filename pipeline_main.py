@@ -13,6 +13,7 @@ if sys.argv[3].lower() == 'register-export':
     segment_cells = False
     overwrite_segmentation = False
     correlte_z_stacks = True
+    export_traces = True
     overwrite_export = False
     register_photostim = True
     export_photostim = True
@@ -25,12 +26,28 @@ elif sys.argv[3].lower() == 'segment-only':
     segment_cells = True
     overwrite_segmentation = False
     correlte_z_stacks = False
+    export_traces = False
     overwrite_export = False
     register_photostim = False
     export_photostim = False
     export_photostim_apical_dendrites = False
     extract_photostim_groups = False
     overwrite_photostim_groups = False
+    segment_mode = 'soma'
+elif sys.argv[3].lower() == 'axon-segment-only':
+    register_z_stacks = False
+    register_sessions = False
+    segment_cells = True
+    overwrite_segmentation = False
+    correlte_z_stacks = False
+    export_traces = False
+    overwrite_export = False
+    register_photostim = False
+    export_photostim = False
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = False
+    overwrite_photostim_groups = False
+    segment_mode = 'axon'
 
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
@@ -81,29 +98,30 @@ if segment_cells or correlte_z_stacks:
                           acceptable_z_range = 1,
                           segment_cells = segment_cells,
                           overwrite_segment = overwrite_segmentation,
-                          correlte_z_stacks =correlte_z_stacks) 
+                          correlte_z_stacks =correlte_z_stacks,
+                         segment_mode =segment_mode) 
+if export_traces:
+    extract.extract_traces(local_temp_dir = local_temp_dir,
+                          metadata_dir = metadata_dir,
+                          raw_scanimage_dir_base =raw_scanimage_dir_base,
+                          suite2p_dir_base = suite2p_dir_base,
+                          bpod_path = bpod_path,
+                          subject = subject,
+                          setup = setup,
+                          fov = fov,
+                          overwrite = overwrite_export)
 
-extract.extract_traces(local_temp_dir = local_temp_dir,
-                      metadata_dir = metadata_dir,
-                      raw_scanimage_dir_base =raw_scanimage_dir_base,
-                      suite2p_dir_base = suite2p_dir_base,
-                      bpod_path = bpod_path,
-                      subject = subject,
-                      setup = setup,
-                      fov = fov,
-                      overwrite = overwrite_export)
 
 
-    
 
-BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup), 
-                                       os.path.join(raw_scanimage_dir_base,setup), 
-                                       os.path.join(bpod_path,setup),
-                                       save_path, 
-                                       overwrite=overwrite_export, 
-                                       mice_name = subject,
-                                       fov_list = [fov],
-                                       max_frames = 500)
+    BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup), 
+                                           os.path.join(raw_scanimage_dir_base,setup), 
+                                           os.path.join(bpod_path,setup),
+                                           save_path, 
+                                           overwrite=overwrite_export, 
+                                           mice_name = subject,
+                                           fov_list = [fov],
+                                           max_frames = 500)
 if register_photostim:
     register.register_photostim(local_temp_dir = local_temp_dir,
                               metadata_dir = metadata_dir,

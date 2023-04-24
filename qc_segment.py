@@ -11,7 +11,6 @@ from suite2p import registration
 import cv2
 import tifffile
 version = '1.0'
-cutoff_pixel_num = [20, 300]
 minimum_pixel_num = -1
 tau = 1
 allow_overlap = True
@@ -187,7 +186,14 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                acceptable_z_range = 3,
                segment_cells = False,
                overwrite_segment = False,
-               correlte_z_stacks = False):
+               correlte_z_stacks = False,
+               segment_mode = 'soma'): # 'soma' 'axon'
+    
+    if segment_mode == 'soma':
+        cutoff_pixel_num = [20, 300]
+    elif segment_mode == 'axon':
+        cutoff_pixel_num = [10, 300]
+
     # TODO these variables are hard-coded
    
     use_cellpose = False
@@ -493,10 +499,18 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         stat_rest = []
         for i,(s,cell_mask,neuropil_mask) in enumerate(zip(stat,cell_masks_,neuropil_masks_)):
             #neurpil_coord = np.unravel_index(s['neuropil_mask'],rois.shape)
-            rois[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] += s['npix']#s['lam']/np.sum(s['lam'])
+            if segment_mode == 'soma':
+                rois[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] += s['npix']#s['lam']/np.sum(s['lam'])
+            elif segment_mode == 'axon':
+                rois[s['ypix'],s['xpix']] += s['npix']#s['lam']/np.sum(s['lam'])
             npix_list.append(s['npix'])
-            npix_list_somacrop.append(s['npix_soma'])
-            npix_list_somacrop_nooverlap.append(sum((s['overlap'] == False) & s['soma_crop']))
+            if segment_mode == 'soma':
+                npix_list_somacrop.append(s['npix_soma'])
+                npix_list_somacrop_nooverlap.append(sum((s['overlap'] == False) & s['soma_crop']))
+            elif segment_mode == 'axon':
+                npix_list_somacrop.append(s['npix'])
+                npix_list_somacrop_nooverlap.append(sum(s['overlap'] == False) )
+                     
             #rois[neurpil_coord[0],neurpil_coord[1]] = .5#cell['lam']/np.sum(cell['lam'])
             idx = (s['soma_crop']==True) & (s['overlap']==False)
             pixel_num = sum( s['soma_crop']) #(s['overlap'] == False) &
