@@ -379,8 +379,8 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         session_dates = subject_metadata.loc[subject_metadata['FOV']==FOV,'Date']
         training_types = subject_metadata.loc[subject_metadata['FOV']==FOV,'Training type']
         for session_date,training_type in zip(session_dates,training_types):
-            if "bci" not in training_type.lower():
-                print('no BCI training according to metadata in session {}'.format(session_date))
+            if ("bci" not in training_type.lower()) and ("pavlov" not in training_type.lower()):
+                print('no BCI or pavlovian training according to metadata in session {}'.format(session_date))
                 continue
             session_date = datetime.datetime.strptime(session_date,'%Y/%m/%d').date()
             if session_date not in session_date_dict.keys():
