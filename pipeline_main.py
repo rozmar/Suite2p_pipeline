@@ -20,6 +20,7 @@ if sys.argv[3].lower() == 'register-export':
     export_photostim_apical_dendrites = False
     extract_photostim_groups = True
     overwrite_photostim_groups = False
+    segment_mode = 'none'
 elif sys.argv[3].lower() == 'segment-only':
     register_z_stacks = False
     register_sessions = False
