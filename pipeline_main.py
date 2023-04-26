@@ -9,6 +9,7 @@ subject = sys.argv[1]
 fov = sys.argv[2]
 if sys.argv[3].lower() == 'register-export':
     register_z_stacks = True
+    nonrigid = False
     register_sessions = True
     segment_cells = False
     overwrite_segmentation = False
@@ -21,9 +22,26 @@ if sys.argv[3].lower() == 'register-export':
     extract_photostim_groups = True
     overwrite_photostim_groups = False
     segment_mode = 'none'
+if sys.argv[3].lower() == 'axon-register-export':
+    register_z_stacks = True
+    nonrigid = True
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = True
+    export_traces = True
+    overwrite_export = False
+    register_photostim = True
+    export_photostim = True
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = True
+    overwrite_photostim_groups = False
+    segment_mode = 'none'
+
 elif sys.argv[3].lower() == 'segment-only':
     register_z_stacks = False
     register_sessions = False
+    nonrigid = False
     segment_cells = True
     overwrite_segmentation = False
     correlte_z_stacks = False
@@ -38,6 +56,7 @@ elif sys.argv[3].lower() == 'segment-only':
 elif sys.argv[3].lower() == 'axon-segment-only':
     register_z_stacks = False
     register_sessions = False
+    nonrigid = False
     segment_cells = True
     overwrite_segmentation = False
     correlte_z_stacks = False
@@ -86,7 +105,8 @@ if register_sessions:
                               setup = setup,
                               max_process_num = 4,
                               batch_size = 50,
-                              FOV_needed = fov)
+                              FOV_needed = fov,
+                              nonrigid = nonrigid)
 if segment_cells or correlte_z_stacks:
     qc_segment.qc_segment(local_temp_dir = local_temp_dir,
                           metadata_dir = metadata_dir,
@@ -132,7 +152,8 @@ if register_photostim:
                               setup = setup,
                               max_process_num = 4,
                               batch_size = 50,
-                              FOV_needed = fov)
+                              FOV_needed = fov,
+                              nonrigid = nonrigid)
 
 
 if export_photostim:

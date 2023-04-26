@@ -166,12 +166,14 @@ def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      setup = 'Bergamo-2P-Photostim',
                      max_process_num = 4,
                      batch_size = 50,
-                     FOV_needed = None):  
+                     FOV_needed = None,
+                      nonrigid = False):  
     #%%
     ########### TODO these variables are hard-coded now
     repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
     suite2p_dir_base_gs = 'gs://aind-transfer-service-test/marton.rozsa/Data/Calcium_imaging/suite2p/'#TODO this is hard-coded):
     s2p_params = {'max_reg_shift':50, # microns
+                  'nonrigid':nonrigid, 
                 'max_reg_shift_NR': 20, # microns
                 'block_size': 200, # microns
                 'smooth_sigma':0.5, # microns
@@ -316,6 +318,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
     suite2p_dir_base_gs = 'gs://aind-transfer-service-test/marton.rozsa/Data/Calcium_imaging/suite2p/'#TODO this is hard-coded):
     s2p_params = {'max_reg_shift':50, # microns
+                  'nonrigid':nonrigid,
                 'max_reg_shift_NR': 20, # microns
                 'block_size': 200, # microns
                 'smooth_sigma':0.5, # microns
