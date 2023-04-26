@@ -312,7 +312,8 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      setup = None,
                      max_process_num = 4,
                      batch_size = 50,
-                     FOV_needed = None):  
+                     FOV_needed = None,
+                    nonrigid = False):  
     
     ########### TODO these variables are hard-coded now
     repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
