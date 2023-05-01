@@ -22,7 +22,7 @@ if sys.argv[3].lower() == 'register-export':
     extract_photostim_groups = True
     overwrite_photostim_groups = False
     segment_mode = 'none'
-if sys.argv[3].lower() == 'axon-register-export':
+elif sys.argv[3].lower() == 'axon-register-export':
     register_z_stacks = True
     nonrigid = True
     register_sessions = True
@@ -37,7 +37,6 @@ if sys.argv[3].lower() == 'axon-register-export':
     extract_photostim_groups = True
     overwrite_photostim_groups = False
     segment_mode = 'none'
-
 elif sys.argv[3].lower() == 'segment-only':
     register_z_stacks = False
     register_sessions = False
@@ -68,7 +67,21 @@ elif sys.argv[3].lower() == 'axon-segment-only':
     extract_photostim_groups = False
     overwrite_photostim_groups = False
     segment_mode = 'axon'
-
+elif sys.argv[3].lower() == 'export-overwrite':
+    register_z_stacks = False
+    register_sessions = False
+    nonrigid = False
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = False
+    export_traces = True
+    overwrite_export = True
+    register_photostim = False
+    export_photostim = False
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = False
+    overwrite_photostim_groups = False
+    segment_mode = 'none'
 # - HARD-CODED VARIABLES FOR GOOGLE CLOUD
 local_temp_dir = '/home/jupyter/temp/' 
 metadata_dir = '/home/jupyter/bucket/Metadata/' 
