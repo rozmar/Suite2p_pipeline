@@ -38,7 +38,7 @@ elif sys.argv[3].lower() == 'axon-segment-only':
     register_z_stacks = False
     register_sessions = False
     segment_cells = True
-    overwrite_segmentation = False
+    overwrite_segmentation = True
     correlte_z_stacks = False
     export_traces = False
     overwrite_export = False

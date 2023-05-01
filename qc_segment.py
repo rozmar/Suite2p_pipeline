@@ -192,7 +192,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     if segment_mode == 'soma':
         cutoff_pixel_num = [20, 300]
     elif segment_mode == 'axon':
-        cutoff_pixel_num = [10, 300]
+        cutoff_pixel_num = [10, 600]
 
     # TODO these variables are hard-coded
    
@@ -501,20 +501,21 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             #neurpil_coord = np.unravel_index(s['neuropil_mask'],rois.shape)
             if segment_mode == 'soma':
                 rois[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] += s['npix']#s['lam']/np.sum(s['lam'])
-            elif segment_mode == 'axon':
-                rois[s['ypix'],s['xpix']] += s['npix']#s['lam']/np.sum(s['lam'])
-            npix_list.append(s['npix'])
-            if segment_mode == 'soma':
+                npix_list.append(s['npix'])
                 npix_list_somacrop.append(s['npix_soma'])
                 npix_list_somacrop_nooverlap.append(sum((s['overlap'] == False) & s['soma_crop']))
+                idx = (s['soma_crop']==True) & (s['overlap']==False)
+                pixel_num = sum( s['soma_crop']) #(s['overlap'] == False) &
+                useful_pixel_num = sum((s['overlap'] == False) & sum( s['soma_crop'])) #    
             elif segment_mode == 'axon':
+                rois[s['ypix'],s['xpix']] += s['npix']#s['lam']/np.sum(s['lam'])
+                npix_list.append(s['npix'])
                 npix_list_somacrop.append(s['npix'])
                 npix_list_somacrop_nooverlap.append(sum(s['overlap'] == False) )
-                     
-            #rois[neurpil_coord[0],neurpil_coord[1]] = .5#cell['lam']/np.sum(cell['lam'])
-            idx = (s['soma_crop']==True) & (s['overlap']==False)
-            pixel_num = sum( s['soma_crop']) #(s['overlap'] == False) &
-            useful_pixel_num = sum((s['overlap'] == False) & sum( s['soma_crop'])) #
+                idx = s['overlap']==False
+                pixel_num = sum(s['overlap']==False) #(s['overlap'] == False) &
+                useful_pixel_num = sum((s['overlap'] == False)) #
+
             if pixel_num>=cutoff_pixel_num[0]  and pixel_num<=cutoff_pixel_num[1] and useful_pixel_num>minimum_pixel_num:
                 rois_good[s['ypix'][idx],s['xpix'][idx]] =s['lam'][idx]/np.sum(s['lam'][idx])*sum(idx)
                 cell_masks.append(cell_mask)
@@ -571,8 +572,8 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         ax_roisize_soma.set_title('somatic ROI sizes')
         ax_roisize_soma_nooverlap = fig_roisize.add_subplot(3,1,3,sharex = ax_roisize)
         ax_roisize_soma_nooverlap.set_title('somatic ROI sizes without overlaps')
-        ax_roisize.hist(npix_list,np.arange(0,300,5))
-        ax_roisize_soma.hist(npix_list_somacrop,np.arange(0,300,5))
+        ax_roisize.hist(npix_list,np.arange(0,cutoff_pixel_num[1],5))
+        ax_roisize_soma.hist(npix_list_somacrop,np.arange(0,cutoff_pixel_num[1],5))
         ax_roisize_soma_nooverlap.hist(npix_list_somacrop_nooverlap,np.arange(0,300,5))
         ax_roisize_soma.axvline(cutoff_pixel_num[0],color ='red')
         ax_roisize_soma.axvline(cutoff_pixel_num[1],color ='red', label = 'pixel size cutoff')
