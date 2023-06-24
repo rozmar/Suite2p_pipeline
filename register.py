@@ -313,7 +313,8 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      max_process_num = 4,
                      batch_size = 50,
                      FOV_needed = None,
-                    nonrigid = False):  
+                    nonrigid = False,
+                    bin_red_channel = False):  
     
     ########### TODO these variables are hard-coded now
     repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
@@ -640,7 +641,13 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                     frames_so_far+=framenum
                     
                 #%
-                with BinaryFile(read_filename=ops['reg_file'], Ly=ops['Ly'], Lx=ops['Lx']) as f:
+                if bin_red_channel:
+                    reg_file_to_bin = ops['reg_file_chan2']
+                else:
+                    reg_file_to_bin = ops['reg_file']
+                
+                
+                with BinaryFile(read_filename=reg_file_to_bin, Ly=ops['Ly'], Lx=ops['Lx']) as f:
                     mov = f.bin_movie(
                         bin_size=bin_size,
                         bad_frames=badframes,

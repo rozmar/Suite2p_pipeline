@@ -7,6 +7,8 @@ except:
 
 subject = sys.argv[1]
 fov = sys.argv[2]
+
+bin_red_channel = False
 if sys.argv[3].lower() == 'register-export':
     register_z_stacks = True
     nonrigid = False
@@ -22,6 +24,22 @@ if sys.argv[3].lower() == 'register-export':
     extract_photostim_groups = True
     overwrite_photostim_groups = False
     segment_mode = 'none'
+elif sys.argv[3].lower() == 'register-export-red':
+    register_z_stacks = True
+    nonrigid = False
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = True
+    export_traces = True
+    overwrite_export = False
+    register_photostim = True
+    export_photostim = True
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = True
+    overwrite_photostim_groups = False
+    segment_mode = 'none'
+    bin_red_channel = True
 elif sys.argv[3].lower() == 'axon-register-export':
     register_z_stacks = True
     nonrigid = True
@@ -119,7 +137,8 @@ if register_sessions:
                               max_process_num = 4,
                               batch_size = 50,
                               FOV_needed = fov,
-                              nonrigid = nonrigid)
+                              nonrigid = nonrigid,
+                              bin_red_channel = bin_red_channel)
 if segment_cells or correlte_z_stacks:
     qc_segment.qc_segment(local_temp_dir = local_temp_dir,
                           metadata_dir = metadata_dir,
