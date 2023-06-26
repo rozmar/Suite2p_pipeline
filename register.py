@@ -621,6 +621,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                     filelist_dict = json.load(f)
                 ops['nframes'] = sum(ops['nframes_list'])
                 ops['reg_file'] = os.path.join(concatenated_movie_dir,'data.bin')
+                ops['reg_file_chan2'] = os.path.join(concatenated_movie_dir,'data_chan2.bin')
                 ops['fs'] = np.mean(ops['fs_list'])
                 bin_size = int(max(1, ops['nframes'] // ops['nbinned'], np.round(tau * ops['fs']))) #ops['tau']
                 badframes = np.asarray(np.zeros(ops['nframes']),bool)
