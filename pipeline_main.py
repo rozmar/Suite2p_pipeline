@@ -9,6 +9,7 @@ subject = sys.argv[1]
 fov = sys.argv[2]
 
 bin_red_channel = False
+use_red_channel = False
 if sys.argv[3].lower() == 'register-export':
     register_z_stacks = True
     nonrigid = False
@@ -40,6 +41,7 @@ elif sys.argv[3].lower() == 'register-export-red':
     overwrite_photostim_groups = False
     segment_mode = 'none'
     bin_red_channel = True
+    use_red_channel = True
 elif sys.argv[3].lower() == 'axon-register-export':
     register_z_stacks = True
     nonrigid = True
@@ -154,6 +156,7 @@ if segment_cells or correlte_z_stacks:
                           correlte_z_stacks =correlte_z_stacks,
                          segment_mode =segment_mode) 
 if export_traces:
+
     extract.extract_traces(local_temp_dir = local_temp_dir,
                           metadata_dir = metadata_dir,
                           raw_scanimage_dir_base =raw_scanimage_dir_base,
@@ -162,7 +165,10 @@ if export_traces:
                           subject = subject,
                           setup = setup,
                           fov = fov,
-                          overwrite = overwrite_export)
+                          overwrite = overwrite_export,
+                          roi_types = [''],
+                          photostim = False,
+                          use_red_channel =use_red_channel)
 
 
 
