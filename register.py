@@ -635,6 +635,9 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                             bad_trial=True
                     if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie or contrast_now<minimum_contrast:
                         bad_trial=True
+                    xoff = ops['xoff_list'][frames_so_far:frames_so_far+framenum]
+                    if np.std(xoff)>5:
+                        bad_trial = True
                     if bad_trial:
                         badframes[frames_so_far:frames_so_far+framenum] = True
                     frames_so_far+=framenum
