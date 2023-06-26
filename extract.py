@@ -391,6 +391,8 @@ def extract_traces_core(subject,
             while len(needed_segments)<30:
                 needed_segments = np.where(np.asarray(f0_diffs)/np.mean(f0)<df_max)[0]
                 df_max+=.05
+                if df_max > 10:
+                    break
             f_points = []
             fneu_points = []
             fneu_mean_points = []
