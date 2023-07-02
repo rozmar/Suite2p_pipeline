@@ -42,7 +42,7 @@ elif sys.argv[3].lower() == 'segment-only':
     register_sessions = False
     nonrigid = False
     segment_cells = True
-    overwrite_segmentation = False
+    overwrite_segmentation = True
     correlte_z_stacks = False
     export_traces = False
     overwrite_export = False

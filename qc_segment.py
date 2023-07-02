@@ -14,8 +14,8 @@ version = '1.0'
 minimum_pixel_num = -1
 tau = 1
 allow_overlap = True
-
-
+denoise_detect = False
+spatial_scale = 0
 def correlate_z_stacks(FOV_dir):
 #%%
     try:
@@ -190,7 +190,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                segment_mode = 'soma'): # 'soma' 'axon'
     
     if segment_mode == 'soma':
-        cutoff_pixel_num = [20, 300]
+        cutoff_pixel_num = [20, 120]
     elif segment_mode == 'axon':
         cutoff_pixel_num = [10, 600]
 
@@ -456,6 +456,9 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             del ops['meanImg_chan2']
         except:
             pass
+        if denoise_detect:
+            ops['denoise'] = True
+        ops['spatial_scale'] = spatial_scale
         ops, stat = detect(ops, classfile=None, mov = binned_movie_concatenated)
         stat_original = stat.copy()
         #%% cut off pixels that drift out of the FOV 
