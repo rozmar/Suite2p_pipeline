@@ -747,9 +747,14 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         
         Lx = int(metadata['metadata']['hRoiManager']['pixelsPerLine'])
         Ly = int(metadata['metadata']['hRoiManager']['linesPerFrame'])
-        yup,xup = upsample_block_shifts(Lx, Ly, ops['nblocks'], ops['xblock'], ops['yblock'], np.median(ops['yoff1'][:5000,:],0)[np.newaxis,:], np.median(ops['xoff1'][:5000,:],0)[np.newaxis,:])
-        xup=xup.squeeze()+x_offset 
-        yup=yup.squeeze()+y_offset 
+        try:
+            yup,xup = upsample_block_shifts(Lx, Ly, ops['nblocks'], ops['xblock'], ops['yblock'], np.median(ops['yoff1'][:5000,:],0)[np.newaxis,:], np.median(ops['xoff1'][:5000,:],0)[np.newaxis,:])
+            xup=xup.squeeze()+x_offset 
+            yup=yup.squeeze()+y_offset 
+            nonrigid = True
+        except:
+            nonrigid = False
+            pass #no nonrigid
         group_list = []
         for group_i,photostim_group in enumerate(photostim_groups):
             power = photostim_group['rois'][1]['scanfields']['powers']
@@ -769,9 +774,13 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
                 coordinates_now = coordinates_now[::-1] # go to yx
                 coordinates_now[0] = coordinates_now[0]*Ly
                 coordinates_now[1] = coordinates_now[1]*Lx
-
-                yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
-                xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+                
+                if nonrigid:
+                    yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
+                    xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+                else:
+                    yoff_now = x_offset
+                    xoff_now = y_offset
                 
                 #lt.plot(coordinates_now[1],coordinates_now[0],'ro')        
                 coordinates_now[0]-=yoff_now
