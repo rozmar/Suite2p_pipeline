@@ -172,7 +172,7 @@ def extract_traces_core(subject,
                         bpod_path,
                         photostim =False,
                         roi_type = '',
-                        ):
+                        use_red_channel = False):
 
     if photostim:
         session = session+'/photostim'
@@ -197,13 +197,19 @@ def extract_traces_core(subject,
         if 'reg_file_chan2' in ops:
             np.save(os.path.join(FOV_dir,session,'F_chan2{}.npy'.format(roi_type)), F_chan2)
             np.save(os.path.join(FOV_dir,session,'Fneu_chan2{}.npy'.format(roi_type)), Fneu_chan2)
+            if use_red_channel:
+                F = F_chan2
+                Fneu = Fneu_chan2
+    elif use_red_channel and 'reg_file_chan2' in ops:
+        F = np.load(os.path.join(FOV_dir,session,'F_chan2{}.npy'.format(roi_type)))
+        Fneu = np.load(os.path.join(FOV_dir,session,'Fneu_chan2{}.npy'.format(roi_type)))
     else:
         F = np.load(os.path.join(FOV_dir,session,'F{}.npy'.format(roi_type)))
         Fneu = np.load(os.path.join(FOV_dir,session,'Fneu{}.npy'.format(roi_type)))
     if photostim: # find stim artefacts and when PMT is off
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
         F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])  
-            
+     
         #%%
     if 'F0{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         #%%
@@ -391,6 +397,8 @@ def extract_traces_core(subject,
             while len(needed_segments)<30:
                 needed_segments = np.where(np.asarray(f0_diffs)/np.mean(f0)<df_max)[0]
                 df_max+=.05
+                if df_max > 10:
+                    break
             f_points = []
             fneu_points = []
             fneu_mean_points = []
@@ -558,7 +566,8 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                    fov = 'FOV_06',
                    overwrite = True,
                    roi_types = [''],
-                   photostim = False):
+                   photostim = False,
+                  use_red_channel = False):
     FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
     sessions=os.listdir(FOV_dir)  
     for roi_type in roi_types:
@@ -576,7 +585,8 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                                 neuropil_masks,
                                 bpod_path,
                                 photostim,
-                                roi_type)
+                                roi_type,
+                               use_red_channel)
 def extract_photostim_groups(subject,
                              FOV,
                              setup,
@@ -748,6 +758,32 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
             centerXY_list = []
             sizeXY_list = []
             revolutions_list = []
+            
+            # calculate coordinates for galvo first
+            xy_now = photostim_group['rois'][1]['scanfields']['centerXY']
+            px = xy_now[0]
+            py = xy_now[1]
+            ox = oy = 0
+            qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+            qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+            coordinates_now = (np.asarray([qx,qy])-fovdeg[0])/np.diff(fovdeg)
+
+            coordinates_now = coordinates_now[::-1] # go to yx
+            coordinates_now[0] = coordinates_now[0]*Ly
+            coordinates_now[1] = coordinates_now[1]*Lx
+
+            yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
+            xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+
+            #lt.plot(coordinates_now[1],coordinates_now[0],'ro')        
+            coordinates_now[0]-=yoff_now
+            coordinates_now[1]-=xoff_now
+            #plt.plot(coordinates_now[1],coordinates_now[0],'yo')
+
+            galvo_xy = coordinates_now[::-1] # go back to xy
+
+            
+            
             for xy_now in xy:
                 px = xy_now[0]
                 py = xy_now[1]
@@ -775,6 +811,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
                                   'sizeXY':np.asarray(sizeXY_list),
                                   'revolution':np.asarray(revolutions_list),
                                   'power':power,
+                                  'galvo_centerXY':galvo_xy,
                                   'power_slm':np.asarray(coordinates)[:,3],
                                   'z':np.asarray(coordinates)[:,2]}
             group_list.append(group_metadata)
