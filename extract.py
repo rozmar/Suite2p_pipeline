@@ -777,8 +777,12 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
             coordinates_now[0] = coordinates_now[0]*Ly
             coordinates_now[1] = coordinates_now[1]*Lx
 
-            yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
-            xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+            if nonrigid:
+                yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
+                xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+            else:
+                yoff_now = x_offset
+                xoff_now = y_offset
 
             #lt.plot(coordinates_now[1],coordinates_now[0],'ro')        
             coordinates_now[0]-=yoff_now
