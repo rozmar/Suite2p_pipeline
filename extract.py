@@ -686,7 +686,7 @@ def create_photostim_dict(frames_per_file,
                'centroidX':centroidX, 
                'centroidY':centroidY, 
                'slmDist':slmDist,
-               'stimID':stimID}            }
+               'stimID':stimID}            
     return outdict
 
 def extract_photostim_groups(subject,
