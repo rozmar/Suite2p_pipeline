@@ -587,6 +587,108 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                                 photostim,
                                 roi_type,
                                use_red_channel)
+            
+            
+def create_photostim_dict(frames_per_file,
+                           F,
+                           siHeader, #metadata
+                           stat,
+                           pre = 5,
+                           post = 20):
+    """
+    Script written by Kayvon, bit updated to fit in pipeline
+    """
+    numTrl = len(frames_per_file);
+    timepts = 45;
+    numCls = F.shape[0]
+    Fstim = np.full((timepts,numCls,numTrl),np.nan)
+    strt = 0;
+    dff = 0*F
+    
+    photostim_groups = siHeader['metadata']['json']['RoiGroups']['photostimRoiGroups']
+    seq = siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'];
+    list_nums = seq.strip('[]').split();
+    seq = [int(num) for num in list_nums]
+    seqPos = int(siHeader['metadata']['hPhotostim']['sequencePosition'])-1;
+    seq = seq[seqPos:Fstim.shape[2]]
+    seq = np.asarray(seq)
+    stimID = np.zeros((F.shape[1],))
+    for ti in range(numTrl):
+        pre_pad = np.arange(strt-5,strt)
+        ind = list(range(strt,strt+frames_per_file[ti]))
+        strt = ind[-1]+1
+        post_pad = np.arange(ind[-1]+1,ind[-1]+20)
+        ind = np.concatenate((pre_pad,np.asarray(ind)),axis=0)
+        ind = np.concatenate((ind,post_pad),axis = 0)
+        ind[ind > F.shape[1]-1] = F.shape[1]-1;
+        ind[ind < 0] = 0
+        stimID[ind[pre+1]] = seq[ti]
+        a = F[:,ind].T
+        bl = np.tile(np.mean(a[0:pre,:],axis = 0),(a.shape[0],1))
+        a = (a-bl) / bl
+        if a.shape[0]>Fstim.shape[0]:
+            a = a[0:Fstim.shape[0],:]
+        Fstim[0:a.shape[0],:,ti] = a
+
+
+    deg = siHeader['metadata']['hRoiManager']['imagingFovDeg']
+    g = [i for i in range(len(deg)) if deg.startswith(" ",i)]
+    gg = [i for i in range(len(deg)) if deg.startswith(";",i)]
+    for i in gg:
+        g.append(i)
+    g = np.sort(g)
+    num = [];
+    for i in range(len(g)-1):
+        num.append(float(deg[g[i]+1:g[i+1]]))
+    dim = int(siHeader['metadata']['hRoiManager']['linesPerFrame']),int(siHeader['metadata']['hRoiManager']['pixelsPerLine'])
+    degRange = np.max(num) - np.min(num)
+    pixPerDeg = dim[0]/degRange
+
+    centroidX = []
+    centroidY = []
+    for i in range(len(stat)):
+        centroidX.append(np.mean(stat[i]['xpix']))
+        centroidY.append(np.mean(stat[i]['ypix']))
+ 
+    favg = np.zeros((Fstim.shape[0],Fstim.shape[1],len(photostim_groups)))
+    stimDist = np.zeros([Fstim.shape[1],len(photostim_groups)])
+    slmDist = np.zeros([Fstim.shape[1],len(photostim_groups)])
+   
+    coordinates = photostim_groups[0]['rois'][1]['scanfields']['slmPattern']
+    xy = np.asarray(coordinates)[:,:2] + photostim_groups[0]['rois'][1]['scanfields']['centerXY']
+    stimPos = np.zeros(np.shape(xy))
+    stimPosition = np.zeros([stimPos.shape[0],stimPos.shape[1],len(photostim_groups)])
+   
+    for gi in range(len(photostim_groups)):
+        coordinates = photostim_groups[gi]['rois'][1]['scanfields']['slmPattern']
+        galvo = photostim_groups[gi]['rois'][1]['scanfields']['centerXY']
+        xy = np.asarray(coordinates)[:,:2] + galvo
+        xygalvo = np.asarray(coordinates)[:,:2]*0 + galvo
+        stimPos = np.zeros(np.shape(xy))
+        galvoPos = np.zeros(np.shape(xy))
+        for i in range(np.shape(xy)[0]):
+            stimPos[i,:] = np.array(xy[i,:]-num[0])*pixPerDeg
+            galvoPos[i,:] = np.array(xygalvo[i,:]-num[0])*pixPerDeg
+        sd = np.zeros([np.shape(xy)[0],favg.shape[1]])       
+        for i in range(np.shape(xy)[0]):
+            for j in range(favg.shape[1]):
+                sd[i,j] = np.sqrt(sum((stimPos[i,:] - np.asarray([centroidX[j], centroidY[j]]))**2))
+                slmDist[j,gi] = np.sqrt(sum((galvoPos[i,:] - np.asarray([centroidX[j], centroidY[j]]))**2))               
+        stimDist[:,gi] = np.min(sd,axis=0)
+        ind = np.where(seq == gi+1)[0]
+        favg[:,:,gi] = np.nanmean(Fstim[:,:,ind],axis = 2)
+        stimPosition[:,:,gi] = stimPos
+    outdict = {'Fstim':Fstim, 
+               'seq':seq,
+               'favg':favg,
+               'stimDist':stimDist,
+               'stimPosition':stimPosition,
+               'centroidX':centroidX, 
+               'centroidY':centroidY, 
+               'slmDist':slmDist,
+               'stimID':stimID}            }
+    return outdict
+
 def extract_photostim_groups(subject,
                              FOV,
                              setup,
@@ -609,6 +711,7 @@ def extract_photostim_groups(subject,
                                     raw_movie_basedir,
                                     suite2p_basedir,
                                      overwrite)
+        
     
 def extract_photostim_groups_core(subject, #TODO write more explanation and make this script nicer
                              FOV,
@@ -708,6 +811,16 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         Fneu = np.concatenate([Fneu,Fneu_rest],0)
         F0 = np.concatenate([F0,F0_rest],0)
         stat = np.concatenate([stat,stat_rest])
+    raw_movie_directory = os.path.join(raw_movie_basedir,setup,subject,session)
+    photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
+    
+    kayvon_photostim_dict = create_photostim_dict(ops['frames_per_file'],
+                                                   F,
+                                                   photostim_files_dict['base_metadata'][0], #metadata
+                                                   stat,
+                                                   pre = 5,
+                                                   post = 20)
+    
     
     F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])
     photostim_indices = np.concatenate([[0],np.cumsum(ops['frames_per_file'])])[:-1]
@@ -732,8 +845,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         
     x_offset = np.median(ops['xoff'])
     y_offset  =np.median(ops['yoff'])
-    raw_movie_directory = os.path.join(raw_movie_basedir,setup,subject,session)
-    photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
+    
     # we are assuming that the photostim group IDs stay the same even if there are multiple basenames
     
     photostim_dict = {}
@@ -926,11 +1038,11 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
                 else:
                     group_list[group_idx]['cell_response_distribution'].append(np.sort(amplitude_all))
         
-        
+    
     photostim_dict_out = {'group_order': photostim_group_list,
-                      'groups':group_list,
-                      'group_repeats':photostim_repeats,
-                      'photostim_indices':np.concatenate([[0],np.cumsum(ops['frames_per_file'])])[:-1]}
+                          'groups':group_list,
+                          'group_repeats':photostim_repeats,
+                          'photostim_indices':np.concatenate([[0],np.cumsum(ops['frames_per_file'])])[:-1]}
     
     
     
@@ -1082,6 +1194,6 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     ax6.legend()
     #ax6.plot(nonsignificant_cells_per_group,significant_cells_per_groups,'ko')
     np.save(os.path.join(FOV_dir,session,'photostim','photostim_groups.npy'),photostim_dict_out,allow_pickle = True)
-    
+    np.save(os.path.join(FOV_dir,session,'photostim','photostim_dict.npy'),kayvon_photostim_dict,allow_pickle = True)
     fig.savefig(os.path.join(FOV_dir,session,'photostim','direct_photostim.pdf'), format="pdf")
     plt.close()
