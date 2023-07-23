@@ -477,7 +477,8 @@ def extract_traces_core(subject,
             samples_averaged.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]]))#*dwelltime)
             dwell_time.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]])*dwelltime)
             #break
-        
+        F0_mean = F0_mean[needed_stat]
+        Fvar_mean = Fvar_mean[needed_stat]
         p = np.polyfit(F0_mean,Fvar_mean*samples_averaged,1)
         intensity_per_photon = p[0]
         
@@ -599,7 +600,7 @@ def create_photostim_dict(frames_per_file,
                            F,
                            siHeader, #metadata
                            stat,
-                           ):
+                          ops):
     """
     Script written by Kayvon, bit updated to fit in pipeline
     """
@@ -611,6 +612,23 @@ def create_photostim_dict(frames_per_file,
     dff = 0*F
     pre = 5
     post = 20
+    
+    
+#     ## adding offsets
+#     x_offset = np.median(ops['xoff'])
+#     y_offset  =np.median(ops['yoff'])
+#     try:
+#         yup,xup = upsample_block_shifts(Lx, Ly, ops['nblocks'], ops['xblock'], ops['yblock'], np.median(ops['yoff1'][:5000,:],0)[np.newaxis,:], np.median(ops['xoff1'][:5000,:],0)[np.newaxis,:])
+#         xup=xup.squeeze()+x_offset 
+#         yup=yup.squeeze()+y_offset 
+#         nonrigid = True
+#     except:
+#         nonrigid = False
+#         pass #no nonrigid
+    
+#     ## adding offsets
+    
+    
     
     photostim_groups = siHeader['metadata']['json']['RoiGroups']['photostimRoiGroups']
     seq = siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'];
@@ -827,8 +845,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
                                                    F,
                                                    photostim_files_dict['base_metadata'][0], #metadata
                                                    stat,
-                                                   pre = 5,
-                                                   post = 20)
+                                                   ops)
     
     
     F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])
