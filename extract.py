@@ -614,19 +614,17 @@ def create_photostim_dict(frames_per_file,
     post = 20
     
     
-#     ## adding offsets
-#     x_offset = np.median(ops['xoff'])
-#     y_offset  =np.median(ops['yoff'])
-#     try:
-#         yup,xup = upsample_block_shifts(Lx, Ly, ops['nblocks'], ops['xblock'], ops['yblock'], np.median(ops['yoff1'][:5000,:],0)[np.newaxis,:], np.median(ops['xoff1'][:5000,:],0)[np.newaxis,:])
-#         xup=xup.squeeze()+x_offset 
-#         yup=yup.squeeze()+y_offset 
-#         nonrigid = True
-#     except:
-#         nonrigid = False
-#         pass #no nonrigid
+    ## correct offsets
+    x_offset = np.median(ops['xoff'])
+    y_offset  =np.median(ops['yoff'])
     
-#     ## adding offsets
+    stat_new = []
+    for s in stat:
+        s['xpix']+=x_offset
+        s['ypix']+=y_offset
+        stat_new.append(s)
+    stat = stat_new
+    print('photostim offsets corrected:{}'.format([x_offset,y_offset]))
     
     
     
@@ -703,7 +701,7 @@ def create_photostim_dict(frames_per_file,
         ind = np.where(seq == gi+1)[0]
         favg[:,:,gi] = np.nanmean(Fstim[:,:,ind],axis = 2)
         stimPosition[:,:,gi] = stimPos
-    outdict = {'Ftrace':F,
+    outdict = {'FstimRaw':F,
                'Fstim':Fstim, 
                'seq':seq,
                'favg':favg,
