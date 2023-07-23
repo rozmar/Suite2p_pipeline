@@ -465,7 +465,13 @@ def extract_traces_core(subject,
         pixel_num = []
         dwell_time = []
         samples_averaged = []
+        pixel_num_list = []
         for s in stat:
+            pixel_num_list.append(np.sum(s['soma_crop']))# &(s['overlap']==False)))
+            #break
+        pixel_num_list=np.asarray(pixel_num_list)
+        needed_stat = pixel_num_list>np.median(pixel_num_list) #ignore the small ROIs
+        for s in np.asarray(stat)[needed_stat]:
             x_pos.append(s['med'][1])
             pixel_num.append(sum(s['soma_crop'] & (s['overlap']==False)))
             samples_averaged.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]]))#*dwelltime)
@@ -593,17 +599,18 @@ def create_photostim_dict(frames_per_file,
                            F,
                            siHeader, #metadata
                            stat,
-                           pre = 5,
-                           post = 20):
+                           ):
     """
     Script written by Kayvon, bit updated to fit in pipeline
     """
     numTrl = len(frames_per_file);
-    timepts = 45;
+    timepts = 25;
     numCls = F.shape[0]
     Fstim = np.full((timepts,numCls,numTrl),np.nan)
     strt = 0;
     dff = 0*F
+    pre = 5
+    post = 20
     
     photostim_groups = siHeader['metadata']['json']['RoiGroups']['photostimRoiGroups']
     seq = siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'];
@@ -617,7 +624,7 @@ def create_photostim_dict(frames_per_file,
         pre_pad = np.arange(strt-5,strt)
         ind = list(range(strt,strt+frames_per_file[ti]))
         strt = ind[-1]+1
-        post_pad = np.arange(ind[-1]+1,ind[-1]+20)
+        post_pad = np.arange(ind[-1]+1,ind[-1]+post)
         ind = np.concatenate((pre_pad,np.asarray(ind)),axis=0)
         ind = np.concatenate((ind,post_pad),axis = 0)
         ind[ind > F.shape[1]-1] = F.shape[1]-1;
@@ -678,7 +685,8 @@ def create_photostim_dict(frames_per_file,
         ind = np.where(seq == gi+1)[0]
         favg[:,:,gi] = np.nanmean(Fstim[:,:,ind],axis = 2)
         stimPosition[:,:,gi] = stimPos
-    outdict = {'Fstim':Fstim, 
+    outdict = {'Ftrace':F,
+               'Fstim':Fstim, 
                'seq':seq,
                'favg':favg,
                'stimDist':stimDist,
@@ -686,7 +694,8 @@ def create_photostim_dict(frames_per_file,
                'centroidX':centroidX, 
                'centroidY':centroidY, 
                'slmDist':slmDist,
-               'stimID':stimID}            
+               'stimID':stimID,
+               'siHeader':siHeader}            
     return outdict
 
 def extract_photostim_groups(subject,
