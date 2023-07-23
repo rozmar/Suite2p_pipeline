@@ -470,7 +470,7 @@ def extract_traces_core(subject,
             pixel_num_list.append(np.sum(s['soma_crop']))# &(s['overlap']==False)))
             #break
         pixel_num_list=np.asarray(pixel_num_list)
-        needed_stat = pixel_num_list>np.median(pixel_num_list) #ignore the small ROIs
+        needed_stat = (pixel_num_list>np.median(pixel_num_list)) & (F0_mean>np.median(F0_mean)) #ignore the small ROIs
         for s in np.asarray(stat)[needed_stat]:
             x_pos.append(s['med'][1])
             pixel_num.append(sum(s['soma_crop'] & (s['overlap']==False)))
