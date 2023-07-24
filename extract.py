@@ -120,6 +120,35 @@ def remove_stim_artefacts(F,Fneu,frames_per_file):
     Fneu = Fneu_
     return F, Fneu
 
+def remove_PMT_trips(F):
+    """
+    nan-ing out tripped PMT traces
+
+    Parameters
+    ----------
+    F : matrix of float
+        Fluorescence of ROIs
+
+    Returns
+    -------
+    F : matrix of float
+        corrected fluorescence of ROIs
+
+    """
+
+    f_std = np.std(F,0)
+    pmt_off_indices = f_std<np.median(f_std)-3*np.std(f_std)
+    pmt_off_edges = np.diff(np.concatenate([pmt_off_indices,[0]]))
+    pmt_off_indices[pmt_off_edges!=0] = 1 #dilate 1
+    pmt_off_edges = np.diff(np.concatenate([[0],pmt_off_indices,[0]]))
+    starts = np.where(pmt_off_edges==1)[0]
+    ends = np.where(pmt_off_edges==-1)[0]
+    lengths = ends-starts
+    for idx in np.where(lengths<=10)[0]:
+        pmt_off_indices[starts[idx]:ends[idx]]=0
+    F[:,pmt_off_indices] = np.nan
+    return F
+
 def align_trace_to_event(F,
                          event_indices,
                          frames_before,
@@ -618,12 +647,6 @@ def create_photostim_dict(frames_per_file,
     x_offset = np.median(ops['xoff'])
     y_offset  =np.median(ops['yoff'])
     
-    stat_new = []
-    for s in stat:
-        s['xpix']+=x_offset
-        s['ypix']+=y_offset
-        stat_new.append(s)
-    stat = stat_new
     print('photostim offsets corrected:{}'.format([x_offset,y_offset]))
     
     
@@ -670,8 +693,8 @@ def create_photostim_dict(frames_per_file,
     centroidX = []
     centroidY = []
     for i in range(len(stat)):
-        centroidX.append(np.mean(stat[i]['xpix']))
-        centroidY.append(np.mean(stat[i]['ypix']))
+        centroidX.append(np.mean(stat[i]['xpix'])+x_offset)
+        centroidY.append(np.mean(stat[i]['ypix'])+y_offset)
  
     favg = np.zeros((Fstim.shape[0],Fstim.shape[1],len(photostim_groups)))
     stimDist = np.zeros([Fstim.shape[1],len(photostim_groups)])
@@ -839,8 +862,9 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     raw_movie_directory = os.path.join(raw_movie_basedir,setup,subject,session)
     photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
     
+    F_without_trips = remove_PMT_trips(F)
     kayvon_photostim_dict = create_photostim_dict(ops['frames_per_file'],
-                                                   F,
+                                                   F_without_trips,
                                                    photostim_files_dict['base_metadata'][0], #metadata
                                                    stat,
                                                    ops)
