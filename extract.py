@@ -469,7 +469,7 @@ def extract_traces_core(subject,
 # =============================================================================
       
     
-    if ('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '' and not photostim: # photon counts only for the big ROIs
+    if True:#('photon_counts.npy' not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and roi_type == '' and not photostim: # photon counts only for the big ROIs
         #%%
         plot_stuff = True
         stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle = True).tolist()
@@ -500,15 +500,15 @@ def extract_traces_core(subject,
             #break
         pixel_num_list=np.asarray(pixel_num_list)
         needed_stat = (pixel_num_list>np.median(pixel_num_list)) & (F0_mean>np.median(F0_mean)) #ignore the small ROIs
-        for s in np.asarray(stat)[needed_stat]:
+        for s in np.asarray(stat):
             x_pos.append(s['med'][1])
             pixel_num.append(sum(s['soma_crop'] & (s['overlap']==False)))
             samples_averaged.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]]))#*dwelltime)
             dwell_time.append(np.sum(mask[s['xpix'][s['soma_crop'] & (s['overlap']==False)]])*dwelltime)
             #break
-        F0_mean = F0_mean[needed_stat]
-        Fvar_mean = Fvar_mean[needed_stat]
-        p = np.polyfit(F0_mean,Fvar_mean*samples_averaged,1)
+        F0_mean = F0_mean
+        Fvar_mean = Fvar_mean
+        p = np.polyfit(np.asarray(F0_mean)[needed_stat],np.asarray(Fvar_mean)[needed_stat]*np.asarray(samples_averaged)[needed_stat],1)
         intensity_per_photon = p[0]
         
         
