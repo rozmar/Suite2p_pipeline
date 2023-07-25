@@ -290,7 +290,7 @@ def register_photostim(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 os.system(cmd)
                 # actual registration
                
-                utils_imaging.register_trial(temp_movie_directory,file_list, delete_raw = False)
+                utils_imaging.register_trial(temp_movie_directory,file_list, delete_raw = True)
                 
                 # archiving
                 Path(archive_movie_directory).mkdir(parents = True,exist_ok = True)
