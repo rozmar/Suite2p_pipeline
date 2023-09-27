@@ -242,6 +242,11 @@ def extract_traces_core(subject,
         #%%
     if 'F0{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         #%%
+        
+        
+        tonan = np.nanstd(F,0)<10 # HARD CODED VARIABLE, ARBITRARY
+        tonan = tonan | np.concatenate([[False],np.abs(np.diff(tonan))>0]) | np.concatenate([np.abs(np.diff(tonan))>0,[False]])
+        F[:,tonan] = np.nan
         F0 = np.zeros_like(F)
         Fvar = np.zeros_like(F)
         print('calculating f0 for {}'.format(session))
@@ -262,10 +267,10 @@ def extract_traces_core(subject,
                 means.append(np.mean(f[start:start+window]))
             stds_roll = rollingfun(stds,100,'min')
             stds_roll = rollingfun(stds_roll,500,'median')
-            
+
             means_roll = rollingfun(means,100,'min')
             means_roll = rollingfun(means_roll,500,'median')
-            
+
             #%
             #f_scaled = np.copy(f)
             f0 = np.ones(len(f))
@@ -282,15 +287,18 @@ def extract_traces_core(subject,
             try:
                 f_ = []
                 f0_ = []
-                for i in np.where(stds[:int(len(stds)/2)]<np.percentile(stds[:int(len(stds)/2)],20))[0]: # polish dff on the lower 20 percent of F values
+                stds_nonnan = np.asarray(stds.copy())
+                stds_nonnan = stds_nonnan[np.isnan(stds_nonnan)==False]
+                percvalue = np.percentile(stds_nonnan[:int(len(stds_nonnan)/2)],20)
+                for i in np.where(stds[:int(len(stds)/2)]<percvalue)[0]: # polish dff on the lower 20 percent of F values
                     f_.append(f[starts[i]:starts[i]+window])
                     f0_.append(f0[starts[i]:starts[i]+window])
                 f_ = np.concatenate(f_)
                 f0_ = np.concatenate(f0_)
                 dff_ = (f_-f0_)/f0_
-                
+
                 #%
-                
+
                 c,b = np.histogram(dff_,np.arange(-2,2,.05))
                 b=np.mean([b[1:],b[:-1]],0)
                 needed = b>-.5
@@ -301,8 +309,7 @@ def extract_traces_core(subject,
             except:
                 print('f0 estimation could not be corrected for roi {}'.format(cell_idx))
                 f0_offsets.append(0)
-            
-                
+    
             #%%
         F0 = F0*(np.median(f0_offsets)+1)
         np.save(os.path.join(FOV_dir,session,'F0{}.npy'.format(roi_type)), F0)
@@ -629,7 +636,7 @@ def create_photostim_dict(frames_per_file,
                            F,
                            siHeader, #metadata
                            stat,
-                          ops):
+                           ops):
     """
     Script written by Kayvon, bit updated to fit in pipeline
     """
@@ -823,7 +830,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     max_direct_distance = 30
     part_num= 5
     false_positive_rate = 1 #per cent
-    
+    estimate_noise_level = False
     
     
     ops =  np.load(os.path.join(FOV_dir,session,'photostim','ops.npy'),allow_pickle = True).tolist()
@@ -1044,14 +1051,15 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
 
 #%
     #%% calculate noise level for all the cells
-    
     photostim_repeats = []
     for group_idx in range(len(group_list)):
         photostim_repeats.append(sum(np.asarray(photostim_group_list) == group_idx))
     unique_photostim_repeats = np.unique(photostim_repeats)
+        
+        
     print('generating null distributions')
     for cell_index in range(len(stat)):
-        
+
         dff = DFF[cell_index,:].copy()
         s = stat[cell_index]
         distances = []
@@ -1063,7 +1071,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
         for g in involving_groups:
             direct_stim_indices.extend(photostim_indices[np.asarray(photostim_group_list)==g])
         direct_stim_indices = np.unique(direct_stim_indices)   
-        
+
         for i in direct_stim_indices:
             dff[np.max([0,i-1]):i+10] = np.nan
 
@@ -1079,13 +1087,14 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
                     if np.isnan(amplitude) == False:
                         amplitudes.append(amplitude)
                 amplitude_all.append(np.nanmean(amplitudes))
-                
+
             for group_idx in np.where(np.asarray(photostim_repeats) == trial_num)[0]:
                 if cell_index == 0:
                     group_list[group_idx]['cell_response_distribution'] = [np.sort(amplitude_all)]
                 else:
                     group_list[group_idx]['cell_response_distribution'].append(np.sort(amplitude_all))
         
+            
     
     photostim_dict_out = {'group_order': photostim_group_list,
                           'groups':group_list,
