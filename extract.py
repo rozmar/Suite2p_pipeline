@@ -243,7 +243,7 @@ def extract_traces_core(subject,
     if 'F0{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         #%%
         
-        
+        F_orig = F.copy()
         tonan = np.nanstd(F,0)<10 # HARD CODED VARIABLE, ARBITRARY
         tonan = tonan | np.concatenate([[False],np.abs(np.diff(tonan))>0]) | np.concatenate([np.abs(np.diff(tonan))>0,[False]])
         F[:,tonan] = np.nan
@@ -314,6 +314,7 @@ def extract_traces_core(subject,
         F0 = F0*(np.median(f0_offsets)+1)
         np.save(os.path.join(FOV_dir,session,'F0{}.npy'.format(roi_type)), F0)
         np.save(os.path.join(FOV_dir,session,'Fvar{}.npy'.format(roi_type)), Fvar)
+        F = F_orig
     else:
         F0 = np.load(os.path.join(FOV_dir,session,'F0{}.npy'.format(roi_type)))
         Fvar = np.load(os.path.join(FOV_dir,session,'Fvar{}.npy'.format(roi_type)))
