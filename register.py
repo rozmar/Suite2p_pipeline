@@ -123,9 +123,12 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                             if type(z_stack) is not str:
                                 continue
                             z_stack_dir = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks')
+                            z_stack_dir_ch_2 = os.path.join(suite2p_dir_base,setup,subject,FOV,'Z-stacks','ch_2')
                             Path(z_stack_dir).mkdir(exist_ok = True, parents = True)
+                            Path(z_stack_dir_ch_2).mkdir(exist_ok = True, parents = True)
                             #z_stack_save_name = '{}_{}.tif'.format(session,z_stack)
                             new_zstack_name = '{}_{}_{}.tif'.format(subject,session,z_stack[:-4])
+                            new_zstack_name_ch2 = '{}_{}_{}_ch2.tif'.format(subject,session,z_stack[:-4])
                             if new_zstack_name in os.listdir(z_stack_dir): 
                                 continue #already done
                             try:
@@ -141,7 +144,10 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                                     utils_imaging.average_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack) ,temp_dir)
                                 
                                 shutil.copyfile(os.path.join(temp_dir,new_zstack_name),os.path.join(z_stack_dir,new_zstack_name))
-
+                                try:
+                                    shutil.copyfile(os.path.join(temp_dir,new_zstack_name_ch2),os.path.join(z_stack_dir_ch_2,new_zstack_name_ch2))
+                                except:
+                                    pass
 
 
 
