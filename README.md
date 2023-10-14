@@ -23,6 +23,16 @@ git clone https://github.com/rozmar/Suite2p_pipeline.git
 cd Suite2p_pipeline 
 
 ```
+changes I need to add in 2023 ???
+```
+pip install opencv-python==4.8.0.76
+pip uninstall -y numpy
+pip uninstall -y setuptools
+conda install setuptools
+conda install numpy
+```
+
+
 ## Initialize an already installed instance
 ```
 cd ~
