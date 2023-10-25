@@ -319,8 +319,9 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      max_process_num = 4,
                      batch_size = 50,
                      FOV_needed = None,
-                    nonrigid = False,
-                    bin_red_channel = False):  
+                     nonrigid = False,
+                     nonrigid_smooth_sigma_time = .5,
+                     bin_red_channel = False):  
     
     ########### TODO these variables are hard-coded now
     repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
@@ -331,6 +332,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 'block_size': 200, # microns
                 'smooth_sigma':0.5, # microns
                 'smooth_sigma_time':0, #seconds,
+                'nonrigid_smooth_sigma_time': nonrigid_smooth_sigma_time,#seconds
                 'overwrite': False,
                 'batch_size':batch_size,
                 #'num_workers':4,

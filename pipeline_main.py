@@ -12,7 +12,7 @@ bin_red_channel = False
 use_red_channel = False
 if sys.argv[3].lower() == 'register-export':
     register_z_stacks = True
-    nonrigid = False
+    nonrigid = True
     register_sessions = True
     segment_cells = False
     overwrite_segmentation = False
@@ -140,6 +140,7 @@ if register_sessions:
                               batch_size = 50,
                               FOV_needed = fov,
                               nonrigid = nonrigid,
+                              nonrigid_smooth_sigma_time = 1,
                               bin_red_channel = bin_red_channel)
 if segment_cells or correlte_z_stacks:
     qc_segment.qc_segment(local_temp_dir = local_temp_dir,
