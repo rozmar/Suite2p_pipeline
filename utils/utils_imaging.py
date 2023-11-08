@@ -450,6 +450,7 @@ def register_trial(target_movie_directory,file, delete_raw = False):
     ops['block_size'] = [128,128]#np.ones(2,int)*block_size
     ops['smooth_sigma'] = s2p_params['smooth_sigma']/np.min(pixelsize)#pixelsize_real #ops['diameter']/10 #
     #ops['smooth_sigma_time'] = s2p_params['smooth_sigma_time']*float(metadata['frame_rate']) # ops['tau']*ops['fs']#
+    ops['nonrigid_smooth_sigma_time'] = s2p_params['nonrigid_smooth_sigma_time']*float(metadata['frame_rate']) # ops['tau']*ops['fs']#
     ops['data_path'] = target_movie_directory
     ops['tiff_list'] = tiffs_now
     ops['batch_size'] = s2p_params['batch_size']#250
@@ -458,6 +459,13 @@ def register_trial(target_movie_directory,file, delete_raw = False):
     meanimage_dict = np.load(os.path.join(target_movie_directory,'mean_image.npy'),allow_pickle = True).tolist()
     refImg = meanimage_dict['refImg']
     ops['refImg'] = refImg
+    try:
+        refImg_nonrigid = meanimage_dict['refImg_nonrigid']
+        ops['refImg_nonrigid'] = refImg_nonrigid
+    except:
+        ops['refImg_nonrigid'] = refImg
+        print('did not find separate nonrigid reference image')
+
     ops['force_refImg'] = True
     print('regstering {} .. {}'.format(tiffs_now[0],tiffs_now[-1]))
     ops['do_regmetrics'] = False
@@ -480,6 +488,9 @@ def register_trial(target_movie_directory,file, delete_raw = False):
     except:
         print('error in registering trial, skipping this one')
         error =True
+    #non-rigid 
+        
+    
     if delete_raw:
         os.remove(tiffs_now[0]) # delete the raw tiff file
     #%%
@@ -614,7 +625,7 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
         print('Reference frame, %0.2f sec.'%(time.time()-t0))
     ops['refImg'] = refImg
     refImg_original = refImg.copy()
-    if 'mean_image.npy' in os.listdir(os.path.join(target_movie_directory,'_reference_image')):# there is a previous reference image
+    if 'mean_image.npy' in os.listdir(os.path.join(target_movie_directory,'_reference_image')):# there is a previous reference image - align to it
         meanimage_dict_old = np.load(os.path.join(target_movie_directory,'_reference_image','mean_image.npy'),allow_pickle = True).tolist()
         refImg_old = meanimage_dict_old['refImg']
         # check if there is rotation
@@ -710,19 +721,20 @@ def generate_mean_image_from_trials(target_movie_directory,trial_num_to_use):
                                                                                                       maxregshiftNR=ops['maxregshiftNR'])
 
 
-            refImg = registration.register.nonrigid.transform_data(data=np.float32(np.stack([refImg,refImg])),
+            refImg_nonrigid = registration.register.nonrigid.transform_data(data=np.float32(np.stack([refImg,refImg])),
                                                                           nblocks=ops['nblocks'],
                                                                           xblock=ops['xblock'],
                                                                           yblock=ops['yblock'],
                                                                           ymax1=ymax1,
                                                                           xmax1=xmax1,
                                                                           )
-        if len(refImg.shape)>2:
-            refImg = refImg[0,:,:].squeeze()
+        if len(refImg_nonrigid.shape)>2:
+            refImg_nonrigid = refImg_nonrigid[0,:,:].squeeze()
         
         
     
         meanimage_dict = {'refImg':refImg,
+                          'refImg_nonrigid':refImg_nonrigid,
                           'refImg_original':refImg_original,
                           'rotation_matrix':rotation_matrix,
                           'rotation_deg':rotation_deg,

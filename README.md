@@ -21,8 +21,9 @@ pip install -e .
 cd ..
 git clone https://github.com/rozmar/Suite2p_pipeline.git
 cd Suite2p_pipeline 
-
+pip install opencv-python
 ```
+
 ## Initialize an already installed instance
 ```
 cd ~

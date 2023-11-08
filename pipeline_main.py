@@ -174,6 +174,7 @@ if register_sessions:
                               batch_size = 50,
                               FOV_needed = fov,
                               nonrigid = nonrigid,
+                              nonrigid_smooth_sigma_time = 1,
                               bin_red_channel = bin_red_channel)
 if segment_cells or correlte_z_stacks:
     qc_segment.qc_segment(local_temp_dir = local_temp_dir,
