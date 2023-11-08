@@ -10,6 +10,7 @@ from suite2p.extraction.masks import create_masks
 from suite2p import registration
 import cv2
 import tifffile
+import datetime
 version = '1.0'
 minimum_pixel_num = -1
 tau = 1
@@ -175,6 +176,232 @@ def correlate_z_stacks(FOV_dir):
             #%%
     fig.savefig(os.path.join(FOV_dir,'Z-positions.pdf'), format="pdf")
 
+    
+    
+def refine_ROIS(suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_imaging/suite2p/',
+                subject = 'BCI_68',
+                setup = 'Bergamo-2P-Photostim',
+                fov = 'FOV_01',
+                overwrite = False,
+                allow_overlap = True,
+                use_cellpose = False,
+                denoise_detect = False):
+    FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
+    sessions=os.listdir(FOV_dir)  
+
+    for session in sessions:
+        if 'z-stack' in session.lower() or '.' in session:
+            continue
+            
+        if overwrite or 'cell_masks.npy' not in os.listdir(os.path.join(FOV_dir,session,)):
+            refine_session_ROIS(suite2p_dir_base = suite2p_dir_base,
+                               subject = subject,
+                               setup = setup,
+                               fov = fov,
+                                session = session,
+                               allow_overlap = allow_overlap,
+                               use_cellpose = use_cellpose,
+                               denoise_detect = denoise_detect)
+
+    
+def refine_session_ROIS(suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_imaging/suite2p/',
+                        subject = 'BCI_68',
+                        setup = 'Bergamo-2P-Photostim',
+                        fov = 'FOV_01',
+                        session = '101023',
+                        allow_overlap = True,
+                        use_cellpose = False,
+                        denoise_detect = False):
+    
+    FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
+    stat_orig = np.load(os.path.join(FOV_dir,'stat.npy'),allow_pickle=True).tolist()
+    try:
+        segmentation_metadata_dict = np.load(os.path.join(FOV_dir, 'segmentation_metadata.npy')).tolist()
+        reference_image = segmentation_metadata_dict['mean_image']
+    except:
+        print('segmentation metadata not found, assuming that first session was used for segmentation')
+        
+        sessions = os.listdir(FOV_dir)
+        session_date_dict = {}
+        for session in sessions:
+            if 'z-stack' in session.lower() or '.' in session:
+                continue
+            try:
+                session_date = datetime.datetime.strptime(session,'%m%d%y')
+            except:
+                try:
+                    session_date = datetime.datetime.strptime(session,'%Y-%m-%d')
+                except:
+                    try:
+                        session_date = datetime.datetime.strptime(session[:6],'%m%d%y')
+                    except:
+                        print('cannot understand date for session dir: {}'.format(session))
+                        continue
+            if session_date.date() in session_date_dict.keys():
+                print('there were multiple sessions on {}'.format(session_date.date()))
+                session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session]
+            else:
+                session_date_dict[session_date.date()] = session
+        session_prev = session_date_dict[np.sort(list(session_date_dict.keys()))[0]]
+        ops_prev = np.load(os.path.join(FOV_dir,session_prev,'ops.npy'),allow_pickle = True).tolist()
+        reference_image = ops_prev['meanImg_list']
+    
+    
+    ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
+    print('loading the binned movie of {}'.format(session))
+    binned_movie_concatenated = np.load(os.path.join(FOV_dir,session,'binned_movie.npy'))
+    #%
+
+    #%% segment ROIs
+    ops['allow_overlap']  = allow_overlap
+    if use_cellpose:
+        ops['anatomical_only'] = True
+        ops['diameter'] = [10,10]
+    else:
+        ops['anatomical_only'] = False
+    ops['xrange'] = [0, ops['Lx']]
+    ops['yrange'] = [0, ops['Ly']]
+
+    try:
+        del ops['meanImg_chan2']
+    except:
+        pass
+    if denoise_detect:
+        ops['denoise'] = True
+    # ops['spatial_scale'] = spatial_scale
+    ops['max_overlap'] = 1
+    ops['maxregshiftNR'] = 50
+    # have the previous and current mean images, do a non-rigid registration, and then move the centroids of all ROIs 
+    #register:: from utils_imaging
+    ops['yblock'], ops['xblock'], ops['nblocks'], ops['block_size'], ops['NRsm'] = registration.register.nonrigid.make_blocks(Ly=ops['Ly'], Lx=ops['Lx'], block_size=[64,64])#ops['block_size'])
+    ops['nframes'] = 1 
+    ops['batch_size']=2 
+
+    meanimage_prev = reference_image
+    meanimage_now = ops['meanImg_list']
+    maskMulNR, maskOffsetNR, cfRefImgNR = registration.register.nonrigid.phasecorr_reference(refImg0=meanimage_now,
+                                                                                             maskSlope=ops['spatial_taper'] if ops['1Preg'] else 3 * ops['smooth_sigma'], # slope of taper mask at the edges
+                                                                                             smooth_sigma=ops['smooth_sigma'],
+                                                                                             yblock=ops['yblock'],
+                                                                                             xblock=ops['xblock'])
+    ymax1, xmax1, cmax1 = registration.register.nonrigid.phasecorr(data=np.complex64(np.float32(np.array([meanimage_prev]*2))),
+                                                                                              maskMul=maskMulNR.squeeze(),
+                                                                                              maskOffset=maskOffsetNR.squeeze(),
+                                                                                              cfRefImg=cfRefImgNR.squeeze(),
+                                                                                              snr_thresh=ops['snr_thresh'],
+                                                                                              NRsm=ops['NRsm'],
+                                                                                              xblock=ops['xblock'],
+                                                                                              yblock=ops['yblock'],
+                                                                                              maxregshiftNR=ops['maxregshiftNR'])
+
+
+    nonrigid_meanimg_prev = registration.register.nonrigid.transform_data(data=np.float32(np.stack([meanimage_prev,meanimage_prev])),
+                                                                          nblocks=ops['nblocks'],
+                                                                          xblock=ops['xblock'],
+                                                                          yblock=ops['yblock'],
+                                                                          ymax1=ymax1,
+                                                                          xmax1=xmax1,
+                                                                          )
+
+    #MOVE: from pipeline_imaging
+
+    yup,xup = upsample_block_shifts(ops['Lx'], ops['Ly'], ops['nblocks'], ops['xblock'], ops['yblock'], ymax1,  xmax1)
+    xup=xup[0,:,:].squeeze()#+x_offset 
+    yup=yup[0,:,:].squeeze()#+y_offset 
+
+
+    stat_orig_modified = []
+    for s in stat_orig:
+        coordinates_now = s['med']
+
+        yoff_now = yup[int(coordinates_now[0]),int(coordinates_now[1])]
+        xoff_now = xup[int(coordinates_now[0]),int(coordinates_now[1])]
+
+        #lt.plot(coordinates_now[1],coordinates_now[0],'ro')        
+        coordinates_now[0]+=yoff_now
+        coordinates_now[1]+=xoff_now
+        s['med'] = np.asarray(coordinates_now,int)
+
+        ROI_image_old = np.zeros([ops['Ly'],ops['Lx']])
+        ROI_image_old[s['ypix'],s['xpix']] = s['lam']
+        ROI_image_new = registration.register.nonrigid.transform_data(data=np.float32(np.stack([ROI_image_old,ROI_image_old])),
+                                                                                                          nblocks=ops['nblocks'],
+                                                                                                          xblock=ops['xblock'],
+                                                                                                          yblock=ops['yblock'],
+                                                                                                          ymax1=ymax1,
+                                                                                                          xmax1=xmax1,
+                                                                                                          )
+        ROI_image_new = ROI_image_new[0,:,:].squeeze()
+        s['ypix'],s['xpix']  = np.where(ROI_image_new>0)
+        s['lam'] = ROI_image_new[s['ypix'],s['xpix']]
+        s['npix'] = len(s['ypix'])
+
+        stat_orig_modified.append(s)
+    if 'aspect' in ops:
+        dy, dx = int(ops['aspect'] * 10), 10
+    else:
+        d0 = ops['diameter']
+        dy, dx = (d0, d0) if isinstance(d0, int) else d0
+
+    # calculate rest of modified sats (like soma crop)
+    stat_orig_modified = roi_stats(stat_orig_modified, dy, dx, ops['Ly'], ops['Lx'], max_overlap=ops['max_overlap'], do_crop=ops['soma_crop'])
+
+    # perform detection
+    ops, stat = detect(ops, classfile=None, mov = binned_movie_concatenated,stat=stat_orig_modified)
+
+    # merge moved rois and refined rois
+
+    ROI_image_old = np.zeros([ops['Ly'],ops['Lx']])
+    ROI_image_new = np.zeros([ops['Ly'],ops['Lx']])
+    mismatch_image_old = np.zeros([ops['Ly'],ops['Lx']])-1
+    mismatch_image_new = np.zeros([ops['Ly'],ops['Lx']])-1
+
+    mismatch = []
+    roi_sizes = []
+    roi_sizes_new = []
+
+    for s_o,s in zip(stat_orig_modified,stat):
+        ROI_image_old_now = np.zeros([ops['Ly'],ops['Lx']])
+        ROI_image_new_now = np.zeros([ops['Ly'],ops['Lx']])
+        ROI_image_old[s_o['ypix'][s_o['soma_crop']==True],s_o['xpix'][s_o['soma_crop']==True]] = sum(s_o['soma_crop']==True) * s_o['lam'][s_o['soma_crop']==True]/sum(s_o['lam'][s_o['soma_crop']==True])
+        ROI_image_new[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] = sum(s['soma_crop']==True) * s['lam'][s['soma_crop']==True]/sum(s['lam'][s['soma_crop']==True])
+
+
+
+        ROI_image_old_now[s_o['ypix'][s_o['soma_crop']==True],s_o['xpix'][s_o['soma_crop']==True]] = s_o['lam'][s_o['soma_crop']==True]/sum(s_o['lam'][s_o['soma_crop']==True])
+        ROI_image_new_now[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] = s['lam'][s['soma_crop']==True]/sum(s['lam'][s['soma_crop']==True])
+
+        mismatch_now = np.sum(np.abs((ROI_image_old_now-ROI_image_new_now).flatten()))/2
+        mismatch.append(mismatch_now)#/np.mean([len(s_o['ypix']),len(s['ypix'])])/2)
+        mismatch_image_old[s_o['ypix'][s_o['soma_crop']==True],s_o['xpix'][s_o['soma_crop']==True]] = mismatch_now
+        mismatch_image_new[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] = mismatch_now
+        roi_sizes.append(len(s_o['ypix'][s_o['soma_crop']==True]))
+        roi_sizes_new.append(len(s['ypix'][s['soma_crop']==True]))
+
+
+    # SAVE stuff   
+    stat_merged = []
+    for s_old,s_new,mismatch_now in zip(stat_orig_modified,stat,mismatch):
+        if mismatch_now >.5:
+            s_old['roi_finetuned'] = False
+            stat_merged.append(s_old)
+        else:
+            stat_merged.append(s_new)
+    stat = stat_merged
+    cell_masks, neuropil_masks = create_masks(ops, stat)
+    #%% select good rois
+
+    #%
+    np.save(os.path.join(FOV_dir,session, 'stat.npy'), stat)
+    scipy.io.savemat(
+        file_name=os.path.join(FOV_dir,session, 'stat.mat'),
+        mdict={
+            'stat': stat
+        }
+    )
+    np.save(os.path.join(FOV_dir,session, 'cell_masks.npy'), cell_masks)
+    np.save(os.path.join(FOV_dir,session, 'neuropil_masks.npy'), neuropil_masks)
+
 def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                metadata_dir = '/mnt/Data/BCI_metadata/',
                raw_scanimage_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
@@ -190,7 +417,8 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                segment_mode = 'soma'): # 'soma' 'axon'
     
     if segment_mode == 'soma':
-        cutoff_pixel_num = [20, 120]
+        #cutoff_pixel_num = [20, 150]#300 for cytosolic, 150 for ribol1
+        cutoff_pixel_num = [25, 300]#300 for cytosolic, 800x800, 150 for ribol1 512x512
     elif segment_mode == 'axon':
         cutoff_pixel_num = [10, 600]
 
@@ -404,6 +632,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         binned_movie_concatenated = []
         ops_loaded=  False
         total_binned_frame_num = 0
+        session_used_for_segmenting = []
         for session in sessions:
             if 'z-stack' in session.lower() or '.' in session:
                 continue
@@ -436,12 +665,14 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             print('loading the binned movie of {}'.format(session))
             mov = np.load(os.path.join(FOV_dir,session,'binned_movie.npy'))
             binned_movie_concatenated.append(mov)
+            session_used_for_segmenting.append(session)
             total_binned_frame_num += mov.shape[0]
             
         binned_movie_concatenated = np.concatenate(binned_movie_concatenated)   
         #%
         t_step_size = int(np.ceil(binned_movie_concatenated.shape[0]/max_binned_frame_num))
         binned_movie_concatenated = binned_movie_concatenated[::t_step_size,:,:]
+        detection_mean_image = np.mean(binned_movie_concatenated,0).squeeze()
         #%% segment ROIs
         ops['allow_overlap']  = allow_overlap
         if use_cellpose:
@@ -543,6 +774,13 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         np.save(os.path.join(FOV_dir, 'stat_rest.npy'), stat_rest)
         np.save(os.path.join(FOV_dir, 'cell_masks_rest.npy'), cell_masks_rest)
         np.save(os.path.join(FOV_dir, 'neuropil_masks_rest.npy'), neuropil_masks_rest)
+        
+        detection_mean_image = np.mean(binned_movie_concatenated,0).squeeze()
+        session_used_for_segmenting
+        np.save(os.path.join(FOV_dir, 'segmentation_metadata.npy'),{'sessions_used':session_used_for_segmenting,
+                                                                    'mean_image':np.mean(binned_movie_concatenated,0).squeeze(),
+                                                                    'max_image':np.max(binned_movie_concatenated,0).squeeze(),
+                                                                    'std_image':np.std(binned_movie_concatenated,0).squeeze()})
                
         #%
         mean_image = np.mean(binned_movie_concatenated,0)

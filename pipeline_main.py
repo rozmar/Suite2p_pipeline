@@ -10,9 +10,11 @@ fov = sys.argv[2]
 
 bin_red_channel = False
 use_red_channel = False
-if sys.argv[3].lower() == 'register-export':
+refine_ROIs = False
+
+if sys.argv[3].lower() == 'refine-rois-register-export':
     register_z_stacks = True
-    nonrigid = False
+    nonrigid = True
     register_sessions = True
     segment_cells = False
     overwrite_segmentation = False
@@ -23,11 +25,43 @@ if sys.argv[3].lower() == 'register-export':
     export_photostim = True
     export_photostim_apical_dendrites = False
     extract_photostim_groups = True
-    overwrite_photostim_groups = False
+    overwrite_photostim_groups = True
+    segment_mode = 'none'
+    refine_ROIs = True
+if sys.argv[3].lower() == 'refine-rois-register-export-overwrite':
+    register_z_stacks = True
+    nonrigid = True
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = True
+    correlte_z_stacks = True
+    export_traces = True
+    overwrite_export = True
+    register_photostim = True
+    export_photostim = True
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = True
+    overwrite_photostim_groups = True
+    segment_mode = 'none'
+    refine_ROIs = True
+if sys.argv[3].lower() == 'register-export':
+    register_z_stacks = True
+    nonrigid = True
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = True
+    export_traces = True
+    overwrite_export = False
+    register_photostim = True
+    export_photostim = True
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = True
+    overwrite_photostim_groups = True
     segment_mode = 'none'
 elif sys.argv[3].lower() == 'register-export-red':
     register_z_stacks = True
-    nonrigid = False
+    nonrigid = True
     register_sessions = True
     segment_cells = False
     overwrite_segmentation = False
@@ -90,7 +124,7 @@ elif sys.argv[3].lower() == 'axon-segment-only':
 elif sys.argv[3].lower() == 'export-overwrite':
     register_z_stacks = False
     register_sessions = False
-    nonrigid = False
+    nonrigid = True
     segment_cells = False
     overwrite_segmentation = False
     correlte_z_stacks = False
@@ -150,11 +184,20 @@ if segment_cells or correlte_z_stacks:
                           setup = setup,
                           fov = fov,
                           minimum_contrast = 3,
-                          acceptable_z_range = 1,
+                          acceptable_z_range = 3,#1 originally
                           segment_cells = segment_cells,
                           overwrite_segment = overwrite_segmentation,
                           correlte_z_stacks =correlte_z_stacks,
                          segment_mode =segment_mode) 
+if refine_ROIs:
+    qc_segment.refine_ROIS(suite2p_dir_base = suite2p_dir_base,
+                           subject = subject,
+                           setup = setup,
+                           fov = fov,
+                           overwrite = overwrite_segmentation,
+                           allow_overlap = True,
+                           use_cellpose = False,
+                           denoise_detect = False)
 if export_traces:
 
     extract.extract_traces(local_temp_dir = local_temp_dir,
@@ -169,8 +212,6 @@ if export_traces:
                           roi_types = [''],
                           photostim = False,
                           use_red_channel =use_red_channel)
-
-
 
 
     BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup), 
