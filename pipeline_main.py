@@ -33,7 +33,7 @@ if sys.argv[3].lower() == 'refine-rois-register-export-overwrite':
     nonrigid = True
     register_sessions = True
     segment_cells = False
-    overwrite_segmentation = True
+    overwrite_segmentation = False
     correlte_z_stacks = True
     export_traces = True
     overwrite_export = True
