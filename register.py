@@ -656,6 +656,18 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 else:
                     reg_file_to_bin = ops['reg_file']
                 
+                # HERE:
+                #-calculate a reference image with non-rigid shifts
+                #-bin the whole movie
+                #-non-rigid register all binned frames to non-rigid reference image
+                #-interpolate non-rigid shifts
+                #-apply interpolated shifts to binary movie
+                #-save new reference image
+                #-save non-rigid shifts
+                
+                # OR!!!!!!
+                # just run the registration in place with smooth_sigma_time set to a higher value
+                # - although that might take an eternity...but probably easier for me and I don't care..
                 
                 with BinaryFile(read_filename=reg_file_to_bin, Ly=ops['Ly'], Lx=ops['Lx']) as f:
                     mov = f.bin_movie(
