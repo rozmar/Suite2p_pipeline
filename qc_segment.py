@@ -5,7 +5,10 @@ import numpy as np
 from pathlib import Path
 import  matplotlib.pyplot as plt
 from suite2p.detection.detect import detect
+from suite2p.detection.stats import roi_stats
+
 from suite2p.extraction.masks import create_masks
+from suite2p.registration.nonrigid import upsample_block_shifts
 #from suite2p.extraction.extract import extract_traces_from_masks
 from suite2p import registration
 import cv2
@@ -17,6 +20,8 @@ tau = 1
 allow_overlap = True
 denoise_detect = False
 spatial_scale = 0
+
+
 def correlate_z_stacks(FOV_dir):
 #%%
     try:
@@ -194,6 +199,7 @@ def refine_ROIS(suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_imaging/su
             continue
             
         if overwrite or 'cell_masks.npy' not in os.listdir(os.path.join(FOV_dir,session,)):
+            print('refining ROIs for {}'.format(session))
             refine_session_ROIS(suite2p_dir_base = suite2p_dir_base,
                                subject = subject,
                                setup = setup,
@@ -223,25 +229,25 @@ def refine_session_ROIS(suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_im
         
         sessions = os.listdir(FOV_dir)
         session_date_dict = {}
-        for session in sessions:
-            if 'z-stack' in session.lower() or '.' in session:
+        for session_ in sessions:
+            if 'z-stack' in session_.lower() or '.' in session_:
                 continue
             try:
-                session_date = datetime.datetime.strptime(session,'%m%d%y')
+                session_date = datetime.datetime.strptime(session_,'%m%d%y')
             except:
                 try:
-                    session_date = datetime.datetime.strptime(session,'%Y-%m-%d')
+                    session_date = datetime.datetime.strptime(session_,'%Y-%m-%d')
                 except:
                     try:
-                        session_date = datetime.datetime.strptime(session[:6],'%m%d%y')
+                        session_date = datetime.datetime.strptime(session_[:6],'%m%d%y')
                     except:
-                        print('cannot understand date for session dir: {}'.format(session))
+                        print('cannot understand date for session dir: {}'.format(session_))
                         continue
             if session_date.date() in session_date_dict.keys():
                 print('there were multiple sessions on {}'.format(session_date.date()))
-                session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session]
+                session_date_dict[session_date.date()] = [session_date_dict[session_date.date()],session_]
             else:
-                session_date_dict[session_date.date()] = session
+                session_date_dict[session_date.date()] = session_
         session_prev = session_date_dict[np.sort(list(session_date_dict.keys()))[0]]
         ops_prev = np.load(os.path.join(FOV_dir,session_prev,'ops.npy'),allow_pickle = True).tolist()
         reference_image = ops_prev['meanImg_list']
