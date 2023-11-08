@@ -780,6 +780,7 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             try:
                 cell_masks = np.load(os.path.join(FOV_dir, session,'cell_masks{}.npy'.format(roi_type)), allow_pickle = True).tolist()
                 neuropil_masks = np.load(os.path.join(FOV_dir,  session,'neuropil_masks{}.npy'.format(roi_type)), allow_pickle = True).tolist()
+                print('using refined session masks to extract traces')
             except:
                 print('session masks not found, extracting with FOV masks')
                 cell_masks = np.load(os.path.join(FOV_dir, 'cell_masks{}.npy'.format(roi_type)), allow_pickle = True).tolist()
@@ -798,7 +799,7 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
             print('extracting from stim files')
             extract_data_from_stim_file(subject,
                                         session,
-                                        FfovOV,
+                                        fov,
                                         suite2p_dir_base,
                                         raw_scanimage_dir_base)
 
