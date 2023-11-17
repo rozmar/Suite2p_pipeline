@@ -815,6 +815,11 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                                             raw_scanimage_dir_base)
             except:
                 print('could not export data from stim files, skipping')
+                
+            try:
+                extract_blue_light_distribution_core(subject, fov)
+            except:
+                print('could not export blue light stim distribution, skipping')
             
 def create_photostim_dict(frames_per_file,
                            F,
@@ -1459,13 +1464,15 @@ micronsperpixel = 1050/(((134-52) + (107-35))/2)#125/138
 pixel_cm_squared = (micronsperpixel/10000)**2
 
 
-def extract_blue_light_distribution(subject,
-                                   fov):
+
+
+def extract_blue_light_distribution_core(subject,
+                                         fov):
     # subject = 'BCI_70'
     # fov = 'FOV_01'
     
     moving_av_win = 1
-    radius = radius = 50
+    radius  = 50
     filter_sigma = 1
     onset_amplitude = .3
     original_dims = [800,800]
