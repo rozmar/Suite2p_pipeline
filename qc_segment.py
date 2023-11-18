@@ -875,6 +875,7 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
     #%% generate Session mean images
     imgs_all = []
     meanImages = imgs_all.copy()
+    ROIS_all = []
     
     for i,session in enumerate(sessions):
         if 'z-stack' in session.lower() or '.' in session:
@@ -902,6 +903,20 @@ def qc_segment(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
         mean_img = np.mean(meanimage_all[needed_trials,:,:],0)
         texted_image =cv2.putText(img=np.copy(mean_img), text="{}".format(session), org=(20,40),fontFace=3, fontScale=1, color=(255,255,255), thickness=2)
         imgs_all.append(texted_image)
+        if 'stat.npy' in os.listdir(os.path.join(FOV_dir,session)):
+            stat = np.load(os.path.join(FOV_dir,session,'stat.npy'), allow_pickle=True).tolist()
+        else:
+            stat = np.load(os.path.join(FOV_dir,'stat.npy'), allow_pickle=True).tolist()
+        ROI_img = mean_img.copy()*0
+        for s in stat:
+            ROI_img[s['ypix'][s['soma_crop']==True],s['xpix'][s['soma_crop']==True]] = sum(s['soma_crop']==True) * s['lam'][s['soma_crop']==True]/sum(s['lam'][s['soma_crop']==True])
+        maxval = np.max(ROI_img.flatten())
+        ROI_img = (ROI_img/maxval)*1000
+        ROIS_all.append(ROI_img)
+        
     tifffile.imsave(os.path.join(FOV_dir,'session_meanimages.tiff'),imgs_all)
+    tifffile.imsave(os.path.join(FOV_dir,'session_ROIimages.tiff'),ROIS_all)
+    
+    
     #%% register each session to every z-stack
    
