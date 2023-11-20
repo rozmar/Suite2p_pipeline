@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
 import os, json
+import tifffile
 import numpy as np
 from suite2p.extraction.extract import extract_traces_from_masks
 from suite2p.registration.nonrigid import upsample_block_shifts
+from suite2p import registration
 import math
 from utils import utils_io
 from utils.utils_imaging import extract_scanimage_metadata
@@ -820,6 +822,11 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 extract_blue_light_distribution_core(subject, fov)
             except:
                 print('could not export blue light stim distribution, skipping')
+                
+            try:
+                extract_z_stack_intensities(subject,fov)
+            except:
+                print('could not export red channel intensities from Z-stack')
             
 def create_photostim_dict(frames_per_file,
                            F,
@@ -1464,191 +1471,286 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     pixel_cm_squared = (micronsperpixel/10000)**2
 
 
+    
+
+def extract_blue_light_distribution_core(subject,
+                                         fov):
+    # subject = 'BCI_70'
+    # fov = 'FOV_01'
+
+    moving_av_win = 1
+    radius  = 50
+    filter_sigma = 1
+    onset_amplitude = .3
+    original_dims = [800,800]
+    s2p_base_dir = '/home/jupyter/bucket/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim'
+    files = os.listdir(os.path.join(s2p_base_dir,subject,fov))
+    metadata_dir = '/home/jupyter/bucket/Metadata'
+    video_base_dir = '/home/jupyter/bucket/Data//Behavior_videos/raw/Bergamo-2P-Photostim/'
 
 
-    def extract_blue_light_distribution_core(subject,
-                                             fov):
-        # subject = 'BCI_70'
-        # fov = 'FOV_01'
-
-        moving_av_win = 1
-        radius  = 50
-        filter_sigma = 1
-        onset_amplitude = .3
-        original_dims = [800,800]
-        s2p_base_dir = '/home/jupyter/bucket/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim'
-        files = os.listdir(os.path.join(s2p_base_dir,subject,fov))
-        metadata_dir = '/home/jupyter/bucket/Metadata'
-        video_base_dir = '/home/jupyter/bucket/Data//Behavior_videos/raw/Bergamo-2P-Photostim/'
-
-
+    try:
+        subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+    except:
         try:
-            subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject.replace('_','')+'.csv'))
+            subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject+'.csv'))
+        except:
+            print('no metadata found')
+    sessions = []
+    for file in files:
+        if '.' not in file and 'Z-stack' not in file:
+            sessions.append(file)
+    sessions = np.sort(sessions)
+    #session_dates = []
+    for session in sessions:
+        try:
+            session_date = datetime.datetime.strptime(session,'%m%d%y')
         except:
             try:
-                subject_metadata = pd.read_csv(os.path.join(metadata_dir,subject+'.csv'))
-            except:
-                print('no metadata found')
-        sessions = []
-        for file in files:
-            if '.' not in file and 'Z-stack' not in file:
-                sessions.append(file)
-        sessions = np.sort(sessions)
-        #session_dates = []
-        for session in sessions:
-            try:
-                session_date = datetime.datetime.strptime(session,'%m%d%y')
+                session_date = datetime.datetime.strptime(session,'%Y-%m-%d')
             except:
                 try:
-                    session_date = datetime.datetime.strptime(session,'%Y-%m-%d')
+                    session_date = datetime.datetime.strptime(session[:6],'%m%d%y')
                 except:
-                    try:
-                        session_date = datetime.datetime.strptime(session[:6],'%m%d%y')
-                    except:
-                        print('cannot understand date for session dir: {}'.format(session))
+                    print('cannot understand date for session dir: {}'.format(session))
 
-                        session_date = np.nan
-            #session_dates.append(session_date)
-            session_dir = os.path.join(s2p_base_dir,subject,fov,session)
+                    session_date = np.nan
+        #session_dates.append(session_date)
+        session_dir = os.path.join(s2p_base_dir,subject,fov,session)
 
 
-            blue_total_power = float(subject_metadata.loc[subject_metadata['Date']==str(session_date.date()).replace('-','/')]['Blue light power (uW)'].values[0])/1000
-            video_path_2p_fov = os.path.join(video_base_dir,subject_metadata.loc[subject_metadata['Date']==str(session_date.date()).replace('-','/')]['2p FOV video'].values[0])
-            video_path_light_spot = os.path.join(video_base_dir,subject_metadata.loc[subject_metadata['Date']==str(session_date.date()).replace('-','/')]['Blue spot video'].values[0])
+        blue_total_power = float(subject_metadata.loc[subject_metadata['Date']==str(session_date.date()).replace('-','/')]['Blue light power (uW)'].values[0])/1000
+        video_path_2p_fov = os.path.join(video_base_dir,subject_metadata.loc[subject_metadata['Date']==str(session_date.date()).replace('-','/')]['2p FOV video'].values[0])
+        video_path_light_spot = os.path.join(video_base_dir,subject_metadata.loc[subject_metadata['Date']==str(session_date.date()).replace('-','/')]['Blue spot video'].values[0])
 
-            arr_fov_highmag = read_mp4(video_path_2p_fov)
-            im_fov_highmag = np.nanmean(arr_fov_highmag,0)
+        arr_fov_highmag = read_mp4(video_path_2p_fov)
+        im_fov_highmag = np.nanmean(arr_fov_highmag,0)
 
-            arr_lightspot = read_mp4(video_path_light_spot)
-            im_arr_lightspot_smallest = np.nanmean(arr_lightspot,0)
+        arr_lightspot = read_mp4(video_path_light_spot)
+        im_arr_lightspot_smallest = np.nanmean(arr_lightspot,0)
 
 
 
 
-            FOV_x_start = np.argmax(np.diff(np.nanmean(im_fov_highmag,0)))
-            FOV_x_end = np.argmin(np.diff(np.nanmean(im_fov_highmag,0)))
-            FOV_y_start = np.argmax(np.diff(np.nanmean(im_fov_highmag,1)))
-            FOV_y_end = np.argmin(np.diff(np.nanmean(im_fov_highmag,1)))
-            FOV_center = [np.nanmean([FOV_x_start,FOV_x_end]),np.nanmean([FOV_y_start,FOV_y_end])]
+        FOV_x_start = np.argmax(np.diff(np.nanmean(im_fov_highmag,0)))
+        FOV_x_end = np.argmin(np.diff(np.nanmean(im_fov_highmag,0)))
+        FOV_y_start = np.argmax(np.diff(np.nanmean(im_fov_highmag,1)))
+        FOV_y_end = np.argmin(np.diff(np.nanmean(im_fov_highmag,1)))
+        FOV_center = [np.nanmean([FOV_x_start,FOV_x_end]),np.nanmean([FOV_y_start,FOV_y_end])]
 
-            fig = plt.figure(figsize = [20,20])
+        fig = plt.figure(figsize = [20,20])
 
-            ax1 = fig.add_subplot(3,3,1)
-            ax1.set_title(video_path_2p_fov[video_path_2p_fov.find('bottom'):].replace('/','\n'))
-            ax1.imshow(im_fov_highmag, aspect = 'auto',interpolation= 'none')#,origin='lower')
-
-
-            ax1.plot(FOV_center[0],FOV_center[1],'ro')
-
-            ax1.plot([FOV_x_start,FOV_x_end,FOV_x_end,FOV_x_start,FOV_x_start],[FOV_y_start,FOV_y_start,FOV_y_end,FOV_y_end,FOV_y_start],'k.-')
-            ax1.set_xlim([FOV_x_start-10,FOV_x_end+10])
-            ax1.set_ylim([FOV_y_end+10,FOV_y_start-10])
+        ax1 = fig.add_subplot(3,3,1)
+        ax1.set_title(video_path_2p_fov[video_path_2p_fov.find('bottom'):].replace('/','\n'))
+        ax1.imshow(im_fov_highmag, aspect = 'auto',interpolation= 'none')#,origin='lower')
 
 
-            ax2= fig.add_subplot(3,3,2,sharex = ax1, sharey = ax1)
-            ax2.imshow(im_arr_lightspot_smallest, aspect = 'auto',interpolation= 'none')#,origin='lower')
-            ax3 = fig.add_subplot(3,3,3,sharex = ax1, sharey = ax1)
-            im_lowmag = ax3.imshow(im_fov_highmag/np.percentile(im_fov_highmag.flatten(),95)+im_arr_lightspot_smallest/np.percentile(im_fov_highmag.flatten(),95), aspect = 'auto',interpolation= 'none')#,origin='lower')
-            #im_lowmag.set_clim([15,25])
+        ax1.plot(FOV_center[0],FOV_center[1],'ro')
+
+        ax1.plot([FOV_x_start,FOV_x_end,FOV_x_end,FOV_x_start,FOV_x_start],[FOV_y_start,FOV_y_start,FOV_y_end,FOV_y_end,FOV_y_start],'k.-')
+        ax1.set_xlim([FOV_x_start-10,FOV_x_end+10])
+        ax1.set_ylim([FOV_y_end+10,FOV_y_start-10])
 
 
-
-
-            im_power = im_arr_lightspot_smallest.copy()
-            im_power_f = scipy.ndimage.gaussian_filter(im_power,filter_sigma)
-            max_val_f = np.max(im_power_f.flatten())
-            background_indices = im_power_f<max_val_f/100
-            background = np.mean(im_power[background_indices])
-            im_power -= background
-            im_power[background_indices]=0
-            im_power = im_power/sum(im_power.flatten())
-            im_power = im_power*blue_total_power
-            im_intensity = im_power/pixel_cm_squared
-
-            im_power_f -= background
-            im_power_f[background_indices]=0
-            im_power_f = im_power_f/sum(im_power_f.flatten())
-            im_power_f = im_power_f*blue_total_power
-            im_intensity_f = im_power_f/pixel_cm_squared
-
-            ax_power = fig.add_subplot(3,3,4,sharex = ax1, sharey = ax1)
-            im_small = ax_power.imshow(im_intensity_f)
-            plt.colorbar(im_small,ax = ax_power,label = 'mW/cm^2')
-            # clim = [np.min(np.concatenate([im.get_clim(),im_small.get_clim()])),
-            #         np.max(np.concatenate([im.get_clim(),im_small.get_clim()]))]
-            ax_power.set_title('total power: {} uW'.format(blue_total_power*1000))
-            ax_power.plot([FOV_x_start,FOV_x_end,FOV_x_end,FOV_x_start,FOV_x_start],[FOV_y_start,FOV_y_start,FOV_y_end,FOV_y_end,FOV_y_start],'k.-')
-
-
-            ax4 = fig.add_subplot(3,3,6)
+        ax2= fig.add_subplot(3,3,2,sharex = ax1, sharey = ax1)
+        ax2.imshow(im_arr_lightspot_smallest, aspect = 'auto',interpolation= 'none')#,origin='lower')
+        ax3 = fig.add_subplot(3,3,3,sharex = ax1, sharey = ax1)
+        im_lowmag = ax3.imshow(im_fov_highmag/np.percentile(im_fov_highmag.flatten(),95)+im_arr_lightspot_smallest/np.percentile(im_fov_highmag.flatten(),95), aspect = 'auto',interpolation= 'none')#,origin='lower')
+        #im_lowmag.set_clim([15,25])
 
 
 
-            radius_real = radius*micronsperpixel
-            spatial_axis = np.arange(-radius,radius)*micronsperpixel
 
-            x_intensity_trace = np.nanmean(im_arr_lightspot_smallest,0)
-            x_intensity_trace_f = rollingfun(x_intensity_trace,moving_av_win)
-            x_max =np.max(x_intensity_trace_f)
-            x_max_idx = np.argmax(x_intensity_trace_f)
-            y_intensity_trace = np.nanmean(im_arr_lightspot_smallest,1)
-            y_intensity_trace_f = rollingfun(y_intensity_trace,moving_av_win)
-            y_max =np.max(y_intensity_trace_f)
-            y_max_idx = np.argmax(y_intensity_trace_f)
-            x_trace_now = x_intensity_trace[x_max_idx-radius:x_max_idx+radius]
-            ax4.plot(spatial_axis ,x_trace_now/x_max)
-            y_trace_now = y_intensity_trace[y_max_idx-radius:y_max_idx+radius]
-            ax4.plot(spatial_axis ,y_trace_now/y_max)
-            ax4.set_xlabel('distance from center of spot (microns)')
-            ax4.set_ylabel('pixel intensity')
+        im_power = im_arr_lightspot_smallest.copy()
+        im_power_f = scipy.ndimage.gaussian_filter(im_power,filter_sigma)
+        max_val_f = np.max(im_power_f.flatten())
+        background_indices = im_power_f<max_val_f/100
+        background = np.mean(im_power[background_indices])
+        im_power -= background
+        im_power[background_indices]=0
+        im_power = im_power/sum(im_power.flatten())
+        im_power = im_power*blue_total_power
+        im_intensity = im_power/pixel_cm_squared
 
-            x_onset = np.argmax(x_trace_now>x_max*onset_amplitude)
-            x_offset = len(x_trace_now)-np.argmax(x_trace_now[::-1]>x_max*onset_amplitude)-1
-            x_width = (x_offset-x_onset)*micronsperpixel
-            ax4.plot(spatial_axis[x_onset],x_trace_now[x_onset]/x_max,'kh')
-            ax4.plot(spatial_axis[x_offset],x_trace_now[x_offset]/x_max,'kh')
-            y_onset = np.argmax(y_trace_now>y_max*onset_amplitude)
-            y_offset = len(y_trace_now)-np.argmax(y_trace_now[::-1]>y_max*onset_amplitude)-1
-            y_width = (y_offset-y_onset)*micronsperpixel
-            ax4.plot(spatial_axis[y_onset],y_trace_now[y_onset]/y_max,'kh')
-            ax4.plot(spatial_axis[y_offset],y_trace_now[y_offset]/y_max,'kh')
-            ax4.set_title('diameter: {} microns'.format(np.int(np.mean([x_width,y_width]))))
+        im_power_f -= background
+        im_power_f[background_indices]=0
+        im_power_f = im_power_f/sum(im_power_f.flatten())
+        im_power_f = im_power_f*blue_total_power
+        im_intensity_f = im_power_f/pixel_cm_squared
+
+        ax_power = fig.add_subplot(3,3,4,sharex = ax1, sharey = ax1)
+        im_small = ax_power.imshow(im_intensity_f)
+        plt.colorbar(im_small,ax = ax_power,label = 'mW/cm^2')
+        # clim = [np.min(np.concatenate([im.get_clim(),im_small.get_clim()])),
+        #         np.max(np.concatenate([im.get_clim(),im_small.get_clim()]))]
+        ax_power.set_title('total power: {} uW'.format(blue_total_power*1000))
+        ax_power.plot([FOV_x_start,FOV_x_end,FOV_x_end,FOV_x_start,FOV_x_start],[FOV_y_start,FOV_y_start,FOV_y_end,FOV_y_end,FOV_y_start],'k.-')
 
 
-            ax1.plot(FOV_center[0],FOV_center[1],'ro')
-            ax2.plot(x_max_idx,y_max_idx,'bo')
-            ax3.plot(x_max_idx,y_max_idx,'bo')
-            ax3.plot(FOV_center[0],FOV_center[1],'ro')
-
-            center_pixels_x = (x_max_idx-FOV_x_start)/(FOV_x_end-FOV_x_start)*800
-            center_pixels_y = (y_max_idx-FOV_y_start)/(FOV_y_end-FOV_y_start)*800
-
-            ax3.set_title('center of spot: {}, {} pixels'.format(np.round(center_pixels_x),np.round(center_pixels_y)))
+        ax4 = fig.add_subplot(3,3,6)
 
 
-            im_power_f_cropped = im_power_f[FOV_y_start:FOV_y_end,FOV_x_start:FOV_x_end]
-            #plt.imshow(im_power_f_cropped)
-            zooms = original_dims/np.asarray(im_power_f_cropped.shape)
-            im_power_zoomed = scipy.ndimage.zoom(im_power_f_cropped, zooms, order=3)
+
+        radius_real = radius*micronsperpixel
+        spatial_axis = np.arange(-radius,radius)*micronsperpixel
+
+        x_intensity_trace = np.nanmean(im_arr_lightspot_smallest,0)
+        x_intensity_trace_f = rollingfun(x_intensity_trace,moving_av_win)
+        x_max =np.max(x_intensity_trace_f)
+        x_max_idx = np.argmax(x_intensity_trace_f)
+        y_intensity_trace = np.nanmean(im_arr_lightspot_smallest,1)
+        y_intensity_trace_f = rollingfun(y_intensity_trace,moving_av_win)
+        y_max =np.max(y_intensity_trace_f)
+        y_max_idx = np.argmax(y_intensity_trace_f)
+        x_trace_now = x_intensity_trace[x_max_idx-radius:x_max_idx+radius]
+        ax4.plot(spatial_axis ,x_trace_now/x_max)
+        y_trace_now = y_intensity_trace[y_max_idx-radius:y_max_idx+radius]
+        ax4.plot(spatial_axis ,y_trace_now/y_max)
+        ax4.set_xlabel('distance from center of spot (microns)')
+        ax4.set_ylabel('pixel intensity')
+
+        x_onset = np.argmax(x_trace_now>x_max*onset_amplitude)
+        x_offset = len(x_trace_now)-np.argmax(x_trace_now[::-1]>x_max*onset_amplitude)-1
+        x_width = (x_offset-x_onset)*micronsperpixel
+        ax4.plot(spatial_axis[x_onset],x_trace_now[x_onset]/x_max,'kh')
+        ax4.plot(spatial_axis[x_offset],x_trace_now[x_offset]/x_max,'kh')
+        y_onset = np.argmax(y_trace_now>y_max*onset_amplitude)
+        y_offset = len(y_trace_now)-np.argmax(y_trace_now[::-1]>y_max*onset_amplitude)-1
+        y_width = (y_offset-y_onset)*micronsperpixel
+        ax4.plot(spatial_axis[y_onset],y_trace_now[y_onset]/y_max,'kh')
+        ax4.plot(spatial_axis[y_offset],y_trace_now[y_offset]/y_max,'kh')
+        ax4.set_title('diameter: {} microns'.format(np.int(np.mean([x_width,y_width]))))
 
 
-            ax_output = fig.add_subplot(3,3,5)
-            im_zoom = ax_output.imshow(im_power_zoomed/pixel_cm_squared)
-            #plt.colorbar(im_zoom,ax = ax_output,label = 'mW/cm^2')
+        ax1.plot(FOV_center[0],FOV_center[1],'ro')
+        ax2.plot(x_max_idx,y_max_idx,'bo')
+        ax3.plot(x_max_idx,y_max_idx,'bo')
+        ax3.plot(FOV_center[0],FOV_center[1],'ro')
+
+        center_pixels_x = (x_max_idx-FOV_x_start)/(FOV_x_end-FOV_x_start)*800
+        center_pixels_y = (y_max_idx-FOV_y_start)/(FOV_y_end-FOV_y_start)*800
+
+        ax3.set_title('center of spot: {}, {} pixels'.format(np.round(center_pixels_x),np.round(center_pixels_y)))
 
 
-            clim = [np.min(np.concatenate([im_zoom.get_clim(),im_small.get_clim()])),
-                    np.max(np.concatenate([im_zoom.get_clim(),im_small.get_clim()]))]
-            im_zoom.set_clim(clim)
-            im_small.set_clim(clim)
+        im_power_f_cropped = im_power_f[FOV_y_start:FOV_y_end,FOV_x_start:FOV_x_end]
+        #plt.imshow(im_power_f_cropped)
+        zooms = original_dims/np.asarray(im_power_f_cropped.shape)
+        im_power_zoomed = scipy.ndimage.zoom(im_power_f_cropped, zooms, order=3)
 
-            ax_output.set_title('intensity profile in 2p pixel space')
 
-            output_dict = {'center_xy':[center_pixels_x,center_pixels_y],
-                          'intensity_mask':im_power_zoomed/pixel_cm_squared,
-                          'total_power_uW':blue_total_power,
-                          '2p_video_path':video_path_2p_fov,
-                           'spot_video_path': video_path_light_spot}
-            np.save(os.path.join(session_dir,'blue_light_distribution.npy'),output_dict)
-            fig.savefig(os.path.join(session_dir,'blue_light_distribution.pdf'), format="pdf")
-            plt.close()
+        ax_output = fig.add_subplot(3,3,5)
+        im_zoom = ax_output.imshow(im_power_zoomed/pixel_cm_squared)
+        #plt.colorbar(im_zoom,ax = ax_output,label = 'mW/cm^2')
+
+
+        clim = [np.min(np.concatenate([im_zoom.get_clim(),im_small.get_clim()])),
+                np.max(np.concatenate([im_zoom.get_clim(),im_small.get_clim()]))]
+        im_zoom.set_clim(clim)
+        im_small.set_clim(clim)
+
+        ax_output.set_title('intensity profile in 2p pixel space')
+
+        output_dict = {'center_xy':[center_pixels_x,center_pixels_y],
+                      'intensity_mask':im_power_zoomed/pixel_cm_squared,
+                      'total_power_uW':blue_total_power,
+                      '2p_video_path':video_path_2p_fov,
+                       'spot_video_path': video_path_light_spot}
+        np.save(os.path.join(session_dir,'blue_light_distribution.npy'),output_dict)
+        fig.savefig(os.path.join(session_dir,'blue_light_distribution.pdf'), format="pdf")
+        plt.close()
+
+
+
+def extract_z_stack_intensities(subject,fov):
+    s2p_base_dir = '/home/jupyter/bucket/Data/Calcium_imaging/suite2p/Bergamo-2P-Photostim'
+
+    files = os.listdir(os.path.join(s2p_base_dir,subject,fov))
+    sessions = []
+    for file in files:
+        if '.' not in file and 'Z-stack' not in file:
+            sessions.append(file)
+    sessions = np.sort(sessions)
+    for session in sessions:
+        fov_dir = os.path.join(s2p_base_dir,subject,fov)
+
+
+
+        F0 = np.load(os.path.join(fov_dir,session,'F0.npy'))
+        F0_scalar =np.nanmedian(F0,1)
+        # open z-stack for the session, load cell masks
+        with open(os.path.join(fov_dir,session,'s2p_params.json'), 'r') as f:
+            s2p_params_dict = json.load(f)
+        z_stack_name = s2p_params_dict['z_stack_name']
+        z_stack_name_ch_2 = s2p_params_dict['z_stack_name'][:-4]+'_ch2.tif'
+        z_stack_dict = np.load(os.path.join(fov_dir,'z_stack_correlations.npy'),allow_pickle=True).tolist()
+        mean_z_similarity = z_stack_dict[z_stack_name[:-4]]['sessions'][session]
+
+
+        stack = tifffile.imread(os.path.join(fov_dir,'Z-stacks',z_stack_name))
+        stack_ch_2 = tifffile.imread(os.path.join(fov_dir,'Z-stacks','ch_2',z_stack_name_ch_2))
+        needed_plane = np.argmax(mean_z_similarity)
+
+        stack_plane = stack[needed_plane,:,:].squeeze()
+        stack_plane_ch_2 = stack_ch_2[needed_plane,:,:].squeeze()
+
+        session_meanimg_dict = np.load(os.path.join(fov_dir,session,'meanImg.npy'),allow_pickle=True)#.tolist()
+        session_meanimg = np.nanmean(np.asarray(session_meanimg_dict),0).squeeze()
+        try:
+            cell_masks = np.load(os.path.join(fov_dir,session,'cell_masks.npy'),allow_pickle=True)#.tolist()
+        except:
+            cell_masks = np.load(os.path.join(fov_dir,'cell_masks.npy'),allow_pickle=True)#.tolist()
+
+
+        ops = np.load(os.path.join(fov_dir,session,'ops.npy'),allow_pickle = True).tolist()
+        ops['yblock'], ops['xblock'], ops['nblocks'], ops['block_size'], ops['NRsm'] = registration.register.nonrigid.make_blocks(Ly=ops['Ly'], Lx=ops['Lx'], block_size=[64,64])#ops['block_size'])
+        ops['nframes'] = 1 
+        ops['batch_size']=2 
+
+        # register correct Z-stack plane to session image
+        maskMulNR, maskOffsetNR, cfRefImgNR = registration.register.nonrigid.phasecorr_reference(refImg0=session_meanimg,
+                                                                                                 maskSlope=ops['spatial_taper'] if ops['1Preg'] else 3 * ops['smooth_sigma'], # slope of taper mask at the edges
+                                                                                                 smooth_sigma=ops['smooth_sigma'],
+                                                                                                 yblock=ops['yblock'],
+                                                                                                 xblock=ops['xblock'])
+        ymax1, xmax1, cmax1 = registration.register.nonrigid.phasecorr(data=np.complex64(np.float32(np.array([stack_plane]*2))),
+                                                                                                  maskMul=maskMulNR.squeeze(),
+                                                                                                  maskOffset=maskOffsetNR.squeeze(),
+                                                                                                  cfRefImg=cfRefImgNR.squeeze(),
+                                                                                                  snr_thresh=ops['snr_thresh'],
+                                                                                                  NRsm=ops['NRsm'],
+                                                                                                  xblock=ops['xblock'],
+                                                                                                  yblock=ops['yblock'],
+                                                                                                  maxregshiftNR=ops['maxregshiftNR'])
+
+
+        registered_zstack_imgs = registration.register.nonrigid.transform_data(data=np.float32(np.stack([stack_plane,stack_plane_ch_2])),
+                                                                              nblocks=ops['nblocks'],
+                                                                              xblock=ops['xblock'],
+                                                                              yblock=ops['yblock'],
+                                                                              ymax1=ymax1,
+                                                                              xmax1=xmax1,
+                                                                              )
+        # extract Z-stack mean fluorescence values
+        stack_val_green = []
+        stack_val_red = []
+        for cell_i in range(cell_masks.shape[0]):
+            stack_val_green.append(np.sum(registered_zstack_imgs[0].flatten()[cell_masks[cell_i][0]]*cell_masks[cell_i][1]))
+            stack_val_red.append(np.sum(registered_zstack_imgs[1].flatten()[cell_masks[cell_i][0]]*cell_masks[cell_i][1]))
+        stack_val_green = np.asarray(stack_val_green)
+        stack_val_red = np.asarray(stack_val_red)
+
+        # find the cells that are not active during the Z-stack
+        ratio_vals = stack_val_green/F0_scalar
+        needed = ratio_vals < np.percentile(ratio_vals,50)
+        p = np.polyfit(F0_scalar[needed],stack_val_green[needed],1)
+        stack_val_green_corrected = np.polyval(p,F0_scalar)
+        relative_expression = stack_val_red/stack_val_green_corrected
+        relative_expression[relative_expression<0] = 0
+
+        red_intensity_dict = {'red_intensity_normalized':relative_expression,
+                              'red_intensity_raw':stack_val_red,
+                              'green_intensity_raw':stack_val_green,
+                              'green_intensity_activity_corrected':stack_val_green_corrected}
+        np.save(os.path.join(fov_dir,session,'z_stack_intensities.npy'),red_intensity_dict)
+
