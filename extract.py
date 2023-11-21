@@ -284,7 +284,14 @@ def extract_data_from_stim_file(subject,
         blue_light_list.append(light_on)
         total_framenum = sum(frame_nums)
         frame_times = np.arange(total_framenum)/frame_rate
-        sample_times = np.arange(len(bluelight_trace))/blue_lightsampling_rate
+        #sample_times = np.arange(len(bluelight_trace))/blue_lightsampling_rate
+        
+        
+        sample_times = np.arange(len(bluelight_trace))/len(bluelight_trace)#/blue_lightsampling_rate
+        sample_times = sample_times*frame_times[-1]
+        new_sr = int(1/np.diff(sample_times)[0])
+        print('sampling rate changed from {} to {}'.format(blue_lightsampling_rate,new_sr))
+        
 
         blue_light_trace_downsampled = []
         raw_trace_list_downsampled = []
