@@ -233,6 +233,7 @@ if register_photostim:
                               max_process_num = 4,
                               batch_size = 50,
                               FOV_needed = fov,
+                              session_list=None,
                               nonrigid = nonrigid)
 
 

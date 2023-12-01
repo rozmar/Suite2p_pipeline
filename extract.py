@@ -1460,22 +1460,22 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     
     
     
-    def read_mp4(filename):
-        vid = imageio.get_reader(filename,  'ffmpeg')
-        idx = 0
-        im_list = []
-        while True:
-            try:
-                im = vid.get_data(idx)
-                im_list.append(np.mean(im,2))
-                idx+=1
-            except:
-                break
-        vid.close()
-        im_array = np.asarray(im_list)
-        return im_array
-    micronsperpixel = 1050/(((134-52) + (107-35))/2)#125/138
-    pixel_cm_squared = (micronsperpixel/10000)**2
+def read_mp4(filename):
+    vid = imageio.get_reader(filename,  'ffmpeg')
+    idx = 0
+    im_list = []
+    while True:
+        try:
+            im = vid.get_data(idx)
+            im_list.append(np.mean(im,2))
+            idx+=1
+        except:
+            break
+    vid.close()
+    im_array = np.asarray(im_list)
+    return im_array
+micronsperpixel = 1050/(((134-52) + (107-35))/2)#125/138
+pixel_cm_squared = (micronsperpixel/10000)**2
 
 
     
