@@ -215,14 +215,14 @@ if export_traces:
                           use_red_channel =use_red_channel)
 
 
-    BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup), 
-                                           os.path.join(raw_scanimage_dir_base,setup), 
-                                           os.path.join(bpod_path,setup),
-                                           save_path, 
-                                           overwrite=overwrite_export, 
-                                           mice_name = subject,
-                                           fov_list = [fov],
-                                           max_frames = 500)
+    # BCI_analysis.io_suite2p.suite2p_to_npy(os.path.join(suite2p_dir_base,setup), 
+    #                                        os.path.join(raw_scanimage_dir_base,setup), 
+    #                                        os.path.join(bpod_path,setup),
+    #                                        save_path, 
+    #                                        overwrite=overwrite_export, 
+    #                                        mice_name = subject,
+    #                                        fov_list = [fov],
+    #                                        max_frames = 500)
 if register_photostim:
     register.register_photostim(local_temp_dir = local_temp_dir,
                               metadata_dir = metadata_dir,
