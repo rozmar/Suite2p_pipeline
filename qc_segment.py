@@ -197,8 +197,13 @@ def refine_ROIS(suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_imaging/su
     for session in sessions:
         if 'z-stack' in session.lower() or '.' in session:
             continue
-            
-        if overwrite or 'cell_masks.npy' not in os.listdir(os.path.join(FOV_dir,session,)):
+        if 'cell_masks.npy' in os.listdir(os.path.join(FOV_dir,session)):
+            stat_orig = np.load(os.path.join(FOV_dir,'stat.npy'),allow_pickle=True).tolist()
+            stat_session = np.load(os.path.join(FOV_dir,session,'stat.npy'),allow_pickle=True).tolist()
+            if len(stat_orig) != len(stat_session):
+                print('re-fining ROIs because session stat has different length')
+                overwrite = True
+        if overwrite or 'cell_masks.npy' not in os.listdir(os.path.join(FOV_dir,session)):
             print('refining ROIs for {}'.format(session))
             refine_session_ROIS(suite2p_dir_base = suite2p_dir_base,
                                subject = subject,
@@ -222,7 +227,7 @@ def refine_session_ROIS(suite2p_dir_base = '/home/jupyter/bucket/Data/Calcium_im
     FOV_dir = os.path.join(suite2p_dir_base,setup,subject,fov)
     stat_orig = np.load(os.path.join(FOV_dir,'stat.npy'),allow_pickle=True).tolist()
     try:
-        segmentation_metadata_dict = np.load(os.path.join(FOV_dir, 'segmentation_metadata.npy')).tolist()
+        segmentation_metadata_dict = np.load(os.path.join(FOV_dir, 'segmentation_metadata.npy'),allow_pickle = True).tolist()
         reference_image = segmentation_metadata_dict['mean_image']
     except:
         print('segmentation metadata not found, assuming that first session was used for segmentation')
