@@ -385,6 +385,13 @@ def extract_traces_core(subject,
         os.listdir(os.path.join(FOV_dir,session))
     except:
         return
+    if 'F{}.npy'.format(roi_type) in os.listdir(os.path.join(FOV_dir,session)):
+        F = np.load(os.path.join(FOV_dir,session,'F{}.npy'.format(roi_type)))
+        if F.shape[0] != len(cell_masks):
+            print('exported trace number do not match cell mask length, re-exporting')
+            overwrite = True
+        
+    
     if 'F{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite:
         
         ops = np.load(os.path.join(FOV_dir,session,'ops.npy'),allow_pickle = True).tolist()
