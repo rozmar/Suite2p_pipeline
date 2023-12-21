@@ -846,7 +846,8 @@ def create_photostim_dict(frames_per_file,
                            F,
                            siHeader, #metadata
                            stat,
-                           ops):
+                           ops,
+                           photostim_seq_offset):
     """
     Script written by Kayvon, bit updated to fit in pipeline
     """
@@ -872,7 +873,7 @@ def create_photostim_dict(frames_per_file,
     seq = siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'];
     list_nums = seq.strip('[]').split();
     seq = [int(num) for num in list_nums]
-    seqPos = int(siHeader['metadata']['hPhotostim']['sequencePosition'])-1;
+    seqPos = int(siHeader['metadata']['hPhotostim']['sequencePosition'])-1 + photostim_seq_offset;
     seq = seq[seqPos:Fstim.shape[2]]
     seq = np.asarray(seq)
     stimID = np.zeros((F.shape[1],))
@@ -1079,12 +1080,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     raw_movie_directory = os.path.join(raw_movie_basedir,setup,subject,session)
     photostim_files_dict = utils_io.organize_photostim_files(raw_movie_directory)
     
-    F_without_trips = remove_PMT_trips(F)
-    kayvon_photostim_dict = create_photostim_dict(ops['frames_per_file'],
-                                                   F_without_trips,
-                                                   photostim_files_dict['base_metadata'][0], #metadata
-                                                   stat,
-                                                   ops)
+    
     
     
     F,Fneu = remove_stim_artefacts(F,Fneu,ops['frames_per_file'])
@@ -1248,6 +1244,7 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     
     #%
     offset = offset_list[np.argmax(direct_amplitude_list)]
+    photostim_seq_offset = offset +1
     for key in photostim_dict.keys():
         photostim_dict[key]['counter'] = offset
     photostim_group_list = []
@@ -1460,6 +1457,15 @@ def extract_photostim_groups_core(subject, #TODO write more explanation and make
     ax6.set_ylabel('# of groups')
     ax6.legend()
     #ax6.plot(nonsignificant_cells_per_group,significant_cells_per_groups,'ko')
+    
+    F_without_trips = remove_PMT_trips(F)
+    kayvon_photostim_dict = create_photostim_dict(ops['frames_per_file'],
+                                                   F_without_trips,
+                                                   photostim_files_dict['base_metadata'][0], #metadata
+                                                   stat,
+                                                   ops,
+                                                   photostim_seq_offset)
+    
     np.save(os.path.join(FOV_dir,session,'photostim','photostim_groups.npy'),photostim_dict_out,allow_pickle = True)
     np.save(os.path.join(FOV_dir,session,'photostim','photostim_dict.npy'),kayvon_photostim_dict,allow_pickle = True)
     fig.savefig(os.path.join(FOV_dir,session,'photostim','direct_photostim.pdf'), format="pdf")
