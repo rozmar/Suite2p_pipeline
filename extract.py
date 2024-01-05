@@ -1751,15 +1751,24 @@ def extract_z_stack_intensities(subject,fov):
                                                                               ymax1=ymax1,
                                                                               xmax1=xmax1,
                                                                               )
+        
+        
         # extract Z-stack mean fluorescence values
         stack_val_green = []
         stack_val_red = []
+        stack_pixel_indices_green = []
+        stack_pixel_indices_red = []
         for cell_i in range(cell_masks.shape[0]):
             stack_val_green.append(np.sum(registered_zstack_imgs[0].flatten()[cell_masks[cell_i][0]]*cell_masks[cell_i][1]))
             stack_val_red.append(np.sum(registered_zstack_imgs[1].flatten()[cell_masks[cell_i][0]]*cell_masks[cell_i][1]))
+            stack_pixel_indices_green.append(registered_zstack_imgs[0].flatten()[cell_masks[cell_i][0]]*cell_masks[cell_i][1])
+            stack_pixel_indices_red.append(registered_zstack_imgs[1].flatten()[cell_masks[cell_i][0]]*cell_masks[cell_i][1])
         stack_val_green = np.asarray(stack_val_green)
         stack_val_red = np.asarray(stack_val_red)
 
+        stack_pixel_indices_green = np.asarray(stack_pixel_indices_green)
+        stack_pixel_indices_red = np.asarray(stack_pixel_indices_red)
+        
         # find the cells that are not active during the Z-stack
         ratio_vals = stack_val_green/F0_scalar
         needed = ratio_vals < np.percentile(ratio_vals,50)
@@ -1771,6 +1780,10 @@ def extract_z_stack_intensities(subject,fov):
         red_intensity_dict = {'red_intensity_normalized':relative_expression,
                               'red_intensity_raw':stack_val_red,
                               'green_intensity_raw':stack_val_green,
-                              'green_intensity_activity_corrected':stack_val_green_corrected}
+                              'red_intensity_raw_pixelbypixel':stack_pixel_indices_red,
+                              'green_intensity_raw_pixelbypixel':stack_pixel_indices_green,
+                              'green_intensity_activity_corrected':stack_val_green_corrected,
+                              'stack_red_plane':registered_zstack_imgs[1],
+                              'stack_green_plane':registered_zstack_imgs[0]}
         np.save(os.path.join(fov_dir,session,'z_stack_intensities.npy'),red_intensity_dict)
 
