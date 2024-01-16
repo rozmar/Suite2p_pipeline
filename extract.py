@@ -193,7 +193,10 @@ def extract_data_from_stim_file(subject,
     # get stim file names
     s2p_session_dir = os.path.join(s2p_base_dir,setup,subject,FOV,session)
     raw_session_dir = os.path.join(raw_scanimage_dir,setup,subject,session)
-    os.listdir(s2p_session_dir)
+    
+    if 'stim_file.npy' in os.listdir(s2p_session_dir):
+        print('stim file already extracted')
+        return None
     with open(os.path.join(s2p_session_dir,'filelist.json')) as f:
         filelist_dict = json.load(f)
     basenames_list = []
