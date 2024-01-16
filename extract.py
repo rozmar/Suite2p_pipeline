@@ -873,10 +873,10 @@ def create_photostim_dict(frames_per_file,
     
     
     photostim_groups = siHeader['metadata']['json']['RoiGroups']['photostimRoiGroups']
-    seq = siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'];
+    seq = np.roll(siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'],photostim_seq_offset);
     list_nums = seq.strip('[]').split();
     seq = [int(num) for num in list_nums]
-    seqPos = int(siHeader['metadata']['hPhotostim']['sequencePosition'])-1 + photostim_seq_offset;
+    seqPos = int(siHeader['metadata']['hPhotostim']['sequencePosition'])-1;
     seq = seq[seqPos:Fstim.shape[2]]
     seq = np.asarray(seq)
     stimID = np.zeros((F.shape[1],))
