@@ -25,7 +25,7 @@ if sys.argv[3].lower() == 'refine-rois-register-export':
     export_photostim = True
     export_photostim_apical_dendrites = False
     extract_photostim_groups = True
-    overwrite_photostim_groups = True
+    overwrite_photostim_groups = False
     segment_mode = 'none'
     refine_ROIs = True
 if sys.argv[3].lower() == 'refine-rois-register-export-overwrite':
