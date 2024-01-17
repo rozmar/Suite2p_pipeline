@@ -873,9 +873,9 @@ def create_photostim_dict(frames_per_file,
     
     
     photostim_groups = siHeader['metadata']['json']['RoiGroups']['photostimRoiGroups']
-    seq = np.roll(siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'],photostim_seq_offset);
+    seq = siHeader['metadata']['hPhotostim']['sequenceSelectedStimuli'];
     list_nums = seq.strip('[]').split();
-    seq = [int(num) for num in list_nums]
+    seq = np.roll([int(num) for num in list_nums],photostim_seq_offset*-1)
     seqPos = int(siHeader['metadata']['hPhotostim']['sequencePosition'])-1;
     seq = seq[seqPos:Fstim.shape[2]]
     seq = np.asarray(seq)
