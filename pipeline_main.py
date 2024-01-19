@@ -233,7 +233,8 @@ if register_photostim:
                               max_process_num = 4,
                               batch_size = 50,
                               FOV_needed = fov,
-                              nonrigid = nonrigid)
+                              nonrigid = nonrigid,
+                              nonrigid_smooth_sigma_time = 1)
 
 
 if export_photostim:
