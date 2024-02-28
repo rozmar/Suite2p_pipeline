@@ -188,14 +188,24 @@ def restore_motion_corrected_zstack(dir_now):
                                     x_range=None,)
             meanim_ch2 = np.mean(mov,0)
         if len(meanimages)>0: # register to previous image
-            maskMul, maskOffset = rigid.compute_masks(refImg=meanimages[-1],
-                                                      maskSlope=1)
-            cfRefImg = rigid.phasecorr_reference(refImg=meanimages[-1],
-                                                 smooth_sigma=1)
-            ymax, xmax, cmax = rigid.phasecorr(data=np.complex64(np.float32(np.asarray([ops['meanImg']]*2)) * maskMul + maskOffset),
-                                               cfRefImg=cfRefImg,
-                                               maxregshift=50,
-                                               smooth_sigma_time=0)
+            if len(meanimages_ch2)>0 and ops['align_by_chan'] == 2:
+                maskMul, maskOffset = rigid.compute_masks(refImg=meanimages_ch2[-1],
+                                                          maskSlope=1)
+                cfRefImg = rigid.phasecorr_reference(refImg=meanimages_ch2[-1],
+                                                     smooth_sigma=1)
+                ymax, xmax, cmax = rigid.phasecorr(data=np.complex64(np.float32(np.asarray([meanim_ch2]*2)) * maskMul + maskOffset),
+                                                   cfRefImg=cfRefImg,
+                                                   maxregshift=50,
+                                                   smooth_sigma_time=0)
+            else:
+                maskMul, maskOffset = rigid.compute_masks(refImg=meanimages[-1],
+                                                          maskSlope=1)
+                cfRefImg = rigid.phasecorr_reference(refImg=meanimages[-1],
+                                                     smooth_sigma=1)
+                ymax, xmax, cmax = rigid.phasecorr(data=np.complex64(np.float32(np.asarray([ops['meanImg']]*2)) * maskMul + maskOffset),
+                                                   cfRefImg=cfRefImg,
+                                                   maxregshift=50,
+                                                   smooth_sigma_time=0)
             regimage = rigid.shift_frame(frame=ops['meanImg'], dy=ymax[0], dx=xmax[0])
             if ops['nchannels'] == 2:
                 meanim_ch2 = rigid.shift_frame(frame=meanim_ch2, dy=ymax[0], dx=xmax[0])
@@ -248,7 +258,7 @@ def average_zstack(source_tiff, target_movie_directory):
         print('error during averaging the movie')
         pass
 #%
-def register_zstack(source_tiff,target_movie_directory):
+def register_zstack(source_tiff,target_movie_directory,channel_to_use = 1):
     """
     registers each plane of a Z-stack, then generates a tiff file of multiple motion corrected suite2p .dat files.
     Also registers each plane to the previous one so there is no wobbling after registration.
@@ -377,6 +387,7 @@ def register_zstack(source_tiff,target_movie_directory):
     print('regstering {}'.format(reordered_tiff))
     ops['do_regmetrics'] = False
     ops['do_bidiphase'] = True
+    ops['align_by_chan'] = channel_to_use
     ops = run_s2p(ops)
     print('registering frames to one another')
     restore_motion_corrected_zstack(target_movie_directory)
