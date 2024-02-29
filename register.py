@@ -17,7 +17,8 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                       suite2p_dir_base = '/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/suite2p/',
                       subject_ = None,
                       setup = None,
-                      method = 'suite2p'):
+                      method = 'suite2p',
+                     use_red_channel = False):
     """
     
 
@@ -138,8 +139,12 @@ def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                             if z_stack in tiff_files_in_raw_folder:
                                 temp_dir = os.path.join(local_temp_dir,'{}_{}_{}'.format(subject,session,z_stack[:-4]))
                                 Path(temp_dir).mkdir(exist_ok = True, parents = True)
+                                if use_red_channel:
+                                    channel_to_use = 2
+                                else:
+                                    channel_to_use = 1
                                 if method == 'suite2p':
-                                    utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack) ,temp_dir)
+                                    utils_imaging.register_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack) ,temp_dir,channel_to_use = channel_to_use)
                                 else:
                                     utils_imaging.average_zstack(os.path.join(raw_scanimage_dir_base,setup,subject,session,z_stack) ,temp_dir)
                                 
@@ -323,9 +328,15 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                      FOV_needed = None,
                      nonrigid = False,
                      nonrigid_smooth_sigma_time = .5,
-                     bin_red_channel = False):  
+                     bin_red_channel = False,
+                    use_red_channel = False):  
     
     ########### TODO these variables are hard-coded now
+    if use_red_channel:
+        channel_to_use = 2
+    else:
+        channel_to_use = 2
+        
     repo_location = '/home/jupyter/Scripts/Suite2p_pipeline'#TODO this is hard-coded):
     suite2p_dir_base_gs = 'gs://aind-transfer-service-test/marton.rozsa/Data/Calcium_imaging/suite2p/'#TODO this is hard-coded):
     s2p_params = {'max_reg_shift':50, # microns
@@ -339,7 +350,8 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 'batch_size':batch_size,
                 #'num_workers':4,
                 'z_stack_name':'',
-                'reference_session':''} # folder where the suite2p output is saved
+                'reference_session':'',
+                 'channel_to_use':channel_to_use} # folder where the suite2p output is saved
     photostim_name_list = ['slm']#['slm','stim','file']
     reference_is_previous_session = False
     skip_photostim_trials = True

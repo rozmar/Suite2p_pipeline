@@ -28,6 +28,24 @@ if sys.argv[3].lower() == 'refine-rois-register-export':
     overwrite_photostim_groups = False
     segment_mode = 'none'
     refine_ROIs = True
+if sys.argv[3].lower() == 'refine-rois-register-export-red':
+    register_z_stacks = True
+    nonrigid = True
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = True
+    export_traces = True
+    overwrite_export = False
+    register_photostim = True
+    export_photostim = True
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = True
+    overwrite_photostim_groups = False
+    segment_mode = 'none'
+    refine_ROIs = True
+    bin_red_channel = True
+    use_red_channel = True
 if sys.argv[3].lower() == 'refine-rois-register-export-overwrite':
     register_z_stacks = True
     nonrigid = True
@@ -152,7 +170,8 @@ if register_z_stacks:
                                   raw_scanimage_dir_base =raw_scanimage_dir_base,
                                   suite2p_dir_base = suite2p_dir_base,
                                   subject_ = subject,
-                                  setup = setup)
+                                  setup = setup,
+                                  use_red_channel = use_red_channel)
     except:
         print('could not register z-stack, trying averaging')
         register.register_z_stacks(local_temp_dir = local_temp_dir,

@@ -469,6 +469,7 @@ def register_trial(target_movie_directory,file, delete_raw = False):
     ops['force_refImg'] = True
     print('regstering {} .. {}'.format(tiffs_now[0],tiffs_now[-1]))
     ops['do_regmetrics'] = False
+    ops['align_by_chan'] = s2p_params['channel_to_use']
 # =============================================================================
 #     ops['badframes'] = []
 #     for tiff_now in tiffs_now:
