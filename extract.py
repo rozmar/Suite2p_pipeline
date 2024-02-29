@@ -586,87 +586,77 @@ def extract_traces_core(subject,
 #         F0+=f0_correction_dict['channel_offset']
 #         Fneu+=f0_correction_dict['channel_offset']
 # =============================================================================
-    try:
-        if ('neuropil_contribution{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and not photostim:
-            neuropil_dict = {}
-            needed_idx = rollingfun(np.mean(F,0),20,'min')> np.median(rollingfun(np.mean(F,0),20,'min'))/2
-            neuropil_dict['good_indices'] = needed_idx
-            fneu_mean = np.mean(Fneu,0)
-            fneu_mean = fneu_mean[needed_idx]
-            slopes = []
-            slopes_mean_fneu = []
-            neuropil_contamination = []
-            neuropil_contamination_mean_fneu = []
-            for cell_idx in range(F.shape[0]): 
-                #cell_idx =2
-
-                f = rollingfun(F[cell_idx,needed_idx],5,'mean')
-                fneu = rollingfun(Fneu[cell_idx,needed_idx],5,'mean')
-                f0 = rollingfun(F0[cell_idx,needed_idx],5,'mean')
-                sample_rate = 20
-                window_t = 1 #s
-                window = int(sample_rate*window_t)
-                step=int(window/2)
-                starts = np.arange(0,len(f)-window,step)
-                stds = list()
-                means = list()
-                f0_diffs = list()
-                for start in starts:
-                    stds.append(np.var(f[start:start+window]))
-                    means.append(np.mean(f[start:start+window]))
-                    f0_diffs.append(np.mean(f[start:start+window])-np.mean(f0[start:start+window]))
-
-                needed_segments = []
-                df_max = .05
-                while len(needed_segments)<30:
-                    needed_segments = np.where(np.asarray(f0_diffs)/np.mean(f0)<df_max)[0]
-                    df_max+=.05
-                    if df_max > 10:
-                        break
-                f_points = []
-                fneu_points = []
-                fneu_mean_points = []
-
-
-                f_filt_ultra_low =  ndimage.minimum_filter(f, size=int(1000))
-                f_filt_highpass = f-f_filt_ultra_low + f_filt_ultra_low[0]
-                fneu_filt_ultra_low =  ndimage.minimum_filter(fneu, size=int(1000))
-                fneu_filt_highpass = fneu-fneu_filt_ultra_low + fneu_filt_ultra_low[0]
-                fneu_std_list = []
-
-                for segment in needed_segments:
-                    start_idx = starts[segment]
-                    f_points.append(f_filt_highpass[start_idx:start_idx+window])
-                    fneu_points.append(fneu_filt_highpass[start_idx:start_idx+window])
-                    fneu_mean_points.append(fneu_mean[start_idx:start_idx+window])
-                    fneu_std_list.append(np.std(fneu_filt_highpass[start_idx:start_idx+window]))
-                sd_order = np.argsort(fneu_std_list)[::-1]
-                needed = sd_order[:30] # 30 seconds of data is used
-                f_points = np.concatenate(np.asarray(f_points)[needed,:])
-                fneu_points = np.concatenate(np.asarray(fneu_points)[needed,:])
-                fneu_mean_points = np.concatenate(np.asarray(fneu_mean_points)[needed,:])
-
-                p = np.polyfit(fneu_points,f_points,1)
-                slopes.append(p[0])
-                neuropil_contamination.append(np.mean(fneu_points)*p[0]/np.mean(f_points))
-                needed__ = (np.isnan(fneu_mean_points)==False) & (np.isnan(f_points)==False)
-                fneu_mean_points_ = fneu_mean_points[needed__]
-                f_points_ = f_points[needed__]
-                try:
-                    p = np.polyfit(fneu_mean_points_,f_points_,1)
-                except:
-                    p = [np.nan,np.nan]
-
-                slopes_mean_fneu.append(p[0])
-                neuropil_contamination_mean_fneu.append(np.mean(fneu_mean_points)*p[0]/np.mean(f_points))
-                #asdasd
-            neuropil_dict['r_neu_local'] = np.asarray(slopes)
-            neuropil_dict['r_neu_global'] = np.asarray(slopes_mean_fneu)
-            neuropil_dict['neuropil_contribution_to_f0_local'] = np.asarray(neuropil_contamination)
-            neuropil_dict['neuropil_contribution_to_f0_global'] = np.asarray(neuropil_contamination_mean_fneu)
-            np.save(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)), neuropil_dict,allow_pickle=True)
-    except:
-        print('could not extract neuropil contribution - skipping')
+    if ('neuropil_contribution{}.npy'.format(roi_type) not in os.listdir(os.path.join(FOV_dir,session)) or overwrite) and not photostim:
+        neuropil_dict = {}
+        needed_idx = rollingfun(np.mean(F,0),20,'min')> np.median(rollingfun(np.mean(F,0),20,'min'))/2
+        neuropil_dict['good_indices'] = needed_idx
+        fneu_mean = np.mean(Fneu,0)
+        fneu_mean = fneu_mean[needed_idx]
+        slopes = []
+        slopes_mean_fneu = []
+        neuropil_contamination = []
+        neuropil_contamination_mean_fneu = []
+        for cell_idx in range(F.shape[0]): 
+            #cell_idx =2
+            
+            f = rollingfun(F[cell_idx,needed_idx],5,'mean')
+            fneu = rollingfun(Fneu[cell_idx,needed_idx],5,'mean')
+            f0 = rollingfun(F0[cell_idx,needed_idx],5,'mean')
+            sample_rate = 20
+            window_t = 1 #s
+            window = int(sample_rate*window_t)
+            step=int(window/2)
+            starts = np.arange(0,len(f)-window,step)
+            stds = list()
+            means = list()
+            f0_diffs = list()
+            for start in starts:
+                stds.append(np.var(f[start:start+window]))
+                means.append(np.mean(f[start:start+window]))
+                f0_diffs.append(np.mean(f[start:start+window])-np.mean(f0[start:start+window]))
+            
+            needed_segments = []
+            df_max = .05
+            while len(needed_segments)<30:
+                needed_segments = np.where(np.asarray(f0_diffs)/np.mean(f0)<df_max)[0]
+                df_max+=.05
+                if df_max > 10:
+                    break
+            f_points = []
+            fneu_points = []
+            fneu_mean_points = []
+            
+            
+            f_filt_ultra_low =  ndimage.minimum_filter(f, size=int(1000))
+            f_filt_highpass = f-f_filt_ultra_low + f_filt_ultra_low[0]
+            fneu_filt_ultra_low =  ndimage.minimum_filter(fneu, size=int(1000))
+            fneu_filt_highpass = fneu-fneu_filt_ultra_low + fneu_filt_ultra_low[0]
+            fneu_std_list = []
+            
+            for segment in needed_segments:
+                start_idx = starts[segment]
+                f_points.append(f_filt_highpass[start_idx:start_idx+window])
+                fneu_points.append(fneu_filt_highpass[start_idx:start_idx+window])
+                fneu_mean_points.append(fneu_mean[start_idx:start_idx+window])
+                fneu_std_list.append(np.std(fneu_filt_highpass[start_idx:start_idx+window]))
+            sd_order = np.argsort(fneu_std_list)[::-1]
+            needed = sd_order[:30] # 30 seconds of data is used
+            f_points = np.concatenate(np.asarray(f_points)[needed,:])
+            fneu_points = np.concatenate(np.asarray(fneu_points)[needed,:])
+            fneu_mean_points = np.concatenate(np.asarray(fneu_mean_points)[needed,:])
+            
+            p = np.polyfit(fneu_points,f_points,1)
+            slopes.append(p[0])
+            neuropil_contamination.append(np.mean(fneu_points)*p[0]/np.mean(f_points))
+            p = np.polyfit(fneu_mean_points,f_points,1)
+            slopes_mean_fneu.append(p[0])
+            neuropil_contamination_mean_fneu.append(np.mean(fneu_mean_points)*p[0]/np.mean(f_points))
+            #asdasd
+        neuropil_dict['r_neu_local'] = np.asarray(slopes)
+        neuropil_dict['r_neu_global'] = np.asarray(slopes_mean_fneu)
+        neuropil_dict['neuropil_contribution_to_f0_local'] = np.asarray(neuropil_contamination)
+        neuropil_dict['neuropil_contribution_to_f0_global'] = np.asarray(neuropil_contamination_mean_fneu)
+        np.save(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)), neuropil_dict,allow_pickle=True)
 # =============================================================================
 #     else:
 #         neuropil_dict = np.load(os.path.join(FOV_dir,session,'neuropil_contribution{}.npy'.format(roi_type)),allow_pickle=True).tolist()
@@ -849,11 +839,11 @@ def extract_traces(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                 extract_blue_light_distribution_core(subject, fov)
             except:
                 print('could not export blue light stim distribution, skipping')
-            extract_z_stack_intensities(subject,fov)
-            # try:
-            #     extract_z_stack_intensities(subject,fov)
-            # except:
-            #     print('could not export red channel intensities from Z-stack')
+                
+            try:
+                extract_z_stack_intensities(subject,fov)
+            except:
+                print('could not export red channel intensities from Z-stack')
             
 def create_photostim_dict(frames_per_file,
                            F,
@@ -1784,9 +1774,7 @@ def extract_z_stack_intensities(subject,fov):
         
         # find the cells that are not active during the Z-stack
         ratio_vals = stack_val_green/F0_scalar
-        ratio_vals_ = ratio_vals[(np.isinf(ratio_vals)==False) &(np.isnan(ratio_vals)==False)]
-        
-        needed = ratio_vals < np.percentile(ratio_vals_,50)
+        needed = ratio_vals < np.percentile(ratio_vals,50)
         p = np.polyfit(F0_scalar[needed],stack_val_green[needed],1)
         stack_val_green_corrected = np.polyval(p,F0_scalar)
         relative_expression = stack_val_red/stack_val_green_corrected
