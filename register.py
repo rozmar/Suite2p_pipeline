@@ -11,6 +11,49 @@ from suite2p.io.binary import BinaryFile
 
 tau = 2 # secondsc - for binning
 
+def rollingfun(y, window = 10, func = 'mean'):
+    """
+    rollingfun
+        rolling average, min, max or std
+    
+    @input:
+        y = array, window, function (mean,min,max,std)
+    """
+    if len(y)<=window:
+        if func =='mean':
+            out = np.ones(len(y))*np.nanmean(y)
+        elif func == 'min':
+            out = np.ones(len(y))*np.nanmin(y)
+        elif func == 'max':
+            out = np.ones(len(y))*np.nanmax(y)
+        elif func == 'std':
+            out = np.ones(len(y))*np.nanstd(y)
+        elif func == 'median':
+            out = np.ones(len(y))*np.nanmedian(y)
+        elif func == 'var':
+            out = np.ones(len(y))*np.nanvar(y)
+        else:
+            print('undefinied funcion in rollinfun')
+    else:
+        y = np.concatenate([y[window::-1],y,y[:-1*window:-1]])
+        ys = list()
+        for idx in range(window):    
+            ys.append(np.roll(y,idx-round(window/2)))
+        if func =='mean':
+            out = np.nanmean(ys,0)[window:-window]
+        elif func == 'min':
+            out = np.nanmin(ys,0)[window:-window]
+        elif func == 'max':
+            out = np.nanmax(ys,0)[window:-window]
+        elif func == 'std':
+            out = np.nanstd(ys,0)[window:-window]
+        elif func == 'median':
+            out = np.nanmedian(ys,0)[window:-window]
+        elif func == 'var':
+            out = np.nanvar(ys,0)[window:-window]
+        else:
+            print('undefined funcion in rollinfun')
+    return out
 def register_z_stacks(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                       metadata_dir = '/home/rozmar/Network/GoogleServices/BCI_data/Metadata/',
                       raw_scanimage_dir_base ='/home/rozmar/Network/GoogleServices/BCI_data/Data/Calcium_imaging/raw/',
@@ -660,8 +703,12 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                     if z > needed_z + acceptable_z_range_for_binned_movie or z < needed_z - acceptable_z_range_for_binned_movie or contrast_now<minimum_contrast:
                         bad_trial=True
                     xoff = ops['xoff_list'][frames_so_far:frames_so_far+framenum]
+                    
                     if np.std(xoff)>5:
-                        bad_trial = True
+                        xoff_filt = rollingfun(xoff,10,'std')
+                        badframes[frames_so_far:frames_so_far+framenum] = xoff_filt>5
+                        print('{} bad frames out of {} due to big xy motion'.format(sum(xoff_filt>5),len(xoff_filt))
+                        
                     if bad_trial:
                         badframes[frames_so_far:frames_so_far+framenum] = True
                     frames_so_far+=framenum
