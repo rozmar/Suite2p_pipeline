@@ -707,7 +707,7 @@ def register_session(local_temp_dir = '/mnt/HDDS/Fast_disk_0/temp/',
                     if np.std(xoff)>5:
                         xoff_filt = rollingfun(xoff,10,'std')
                         badframes[frames_so_far:frames_so_far+framenum] = xoff_filt>5
-                        print('{} bad frames out of {} due to big xy motion'.format(sum(xoff_filt>5),len(xoff_filt))
+                        print('{} bad frames out of {} due to big xy motion'.format(sum(xoff_filt>5),len(xoff_filt)))
                         
                     if bad_trial:
                         badframes[frames_so_far:frames_so_far+framenum] = True
