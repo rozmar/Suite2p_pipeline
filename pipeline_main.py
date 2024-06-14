@@ -11,7 +11,22 @@ fov = sys.argv[2]
 bin_red_channel = False
 use_red_channel = False
 refine_ROIs = False
-
+if sys.argv[3].lower() == 'register':
+    register_z_stacks = True
+    nonrigid = True
+    register_sessions = True
+    segment_cells = False
+    overwrite_segmentation = False
+    correlte_z_stacks = True
+    export_traces = False
+    overwrite_export = False
+    register_photostim = True
+    export_photostim = False
+    export_photostim_apical_dendrites = False
+    extract_photostim_groups = False
+    overwrite_photostim_groups = False
+    segment_mode = 'none'
+    refine_ROIs = True
 if sys.argv[3].lower() == 'refine-rois-register-export':
     register_z_stacks = True
     nonrigid = True
@@ -203,7 +218,7 @@ if segment_cells or correlte_z_stacks:
                           subject = subject,
                           setup = setup,
                           fov = fov,
-                          minimum_contrast = 3,
+                          minimum_contrast = 2,
                           acceptable_z_range = 3,#1 originally
                           segment_cells = segment_cells,
                           overwrite_segment = overwrite_segmentation,
